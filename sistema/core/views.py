@@ -1,4 +1,4 @@
-from django.shortcuts import viewsets
+from rest_framework import viewsets
 from .models import Medico, Exame, Imagem
 from .serializers import MedicoSerializer, ExameSerializer, ImagemSerializer
 

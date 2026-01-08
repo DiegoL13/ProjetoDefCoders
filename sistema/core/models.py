@@ -26,4 +26,4 @@ class Exame(models.Model):
 
 class Imagem(models.Model):
   exame = models.ForeignKey(Exame, on_delete=models.CASCADE)
-  path = models.URLField()
+  path = models.ImageField()
