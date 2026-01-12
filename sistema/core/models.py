@@ -1,7 +1,28 @@
 from django.db import models
+from .choices import *
 
 # Create your models here.
-class Medico(models.Model):
+
+class Usuario(models.Model):
+    nome = models.CharField(max_length=100)
+    cpf = models.CharField(max_length=11, unique=True)
+    data_nascimento = models.DateField()
+    sexo = models.CharField(verbose_name='Sexo Biológico', max_length=20, choices=SEXO_BIOLOG_CHOICES)
+    contato = models.CharField(verbose_name='Contato', max_length=45, help_text='Insira uma forma de contato (Telefone, email, etc)')
+    email = models.EmailField(unique=True)
+    senha = models.CharField(max_length=40)
+    
+    
+    class Meta:
+        abstract = True  # Define que esta classe não criará uma tabela própria no banco
+
+    def __str__(self):
+        return self.nome
+    
+class Paciente(Usuario):
+    historico_medico = models.TextField(blank=True, null=True)
+
+class Medico(Usuario):
   CRM = models.IntegerField(primary_key=True)
   especialidade = models.CharField(max_length=30)
 
