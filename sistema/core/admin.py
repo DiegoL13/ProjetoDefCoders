@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Medico, Exame, Imagem
+from .models import Medico, Exame, Imagem, Paciente
 
 # Register your models here.
 @admin.register(Medico)
@@ -13,3 +13,7 @@ class ExameAdmin(admin.ModelAdmin):
 @admin.register(Imagem)
 class ImagemAdmin(admin.ModelAdmin):
   list_display = ['path']
+
+@admin.register(Paciente)
+class PacienteAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'cpf']
