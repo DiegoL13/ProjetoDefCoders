@@ -1,3 +1,80 @@
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from .choices import *
 
-# Create your models here.
+class UsuarioManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('O e-mail é obrigatório')
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password) # Criptografa a senha
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, password, **extra_fields)
+
+class Usuario(AbstractBaseUser, PermissionsMixin):
+    nome = models.CharField(max_length=100)
+    cpf = models.CharField(max_length=11, unique=True)
+    data_nascimento = models.DateField()
+    sexo = models.CharField(max_length=20, choices=SEXO_BIOLOG_CHOICES)
+    contato = models.CharField(max_length=45)
+    email = models.EmailField(unique=True)
+    
+    # IMPORTANTE: Adicione o Manager aqui
+    objects = UsuarioManager()
+
+    # Configurações de Autenticação
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['nome', 'cpf'] 
+
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+
+
+    def __str__(self):
+        return self.nome
+    
+class Paciente(Usuario):
+    historico_medico = models.TextField(blank=True, null=True)
+
+class Medico(Usuario):
+  CRM = models.CharField(max_length=20, unique=True)
+  especialidade = models.CharField(max_length=30)
+
+  def __str__(self):
+    return str(self.CRM)
+  
+
+class Exame(models.Model):
+  medico = models.ForeignKey(Medico, on_delete=models.CASCADE)
+  paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE) # Campo adicionado
+  assinatura = models.CharField(max_length=100)
+  data = models.DateTimeField()
+  
+  tipo_escolha = (
+      ('ANALISADO POR IA', 'Analisado por IA'),
+      ('REVISADO POR HUMANO', 'Revisado por Humano')
+  )
+  tipo = models.CharField(choices=tipo_escolha, max_length=30)
+  
+  resultados = (
+      ('BENIGNO','Benigno'),
+      ('MALIGNO', 'Maligno'),
+      ('SAUDÁVEL', 'Saudável')
+  )
+  resultado = models.CharField(choices=resultados, max_length=20)
+
+  def __str__(self):
+      return f"Exame de {self.paciente.nome} ({self.data})"
+
+class Imagem(models.Model):
+    exame = models.ForeignKey(Exame, on_delete=models.CASCADE, related_name='imagens')
+    path = models.ImageField(upload_to='imagens_exames/') # Caminho de upload definido
+
+    def __str__(self):
+        return f"Imagem do Exame {self.exame.id}"

@@ -39,7 +39,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'core',
     'rest_framework',
+
 ]
+
+AUTH_USER_MODEL = 'core.Usuario'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTENTICATION_CLASSES':(
