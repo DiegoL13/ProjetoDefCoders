@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager, User
 from .choices import *
 
 class UsuarioManager(BaseUserManager):
@@ -78,3 +78,28 @@ class Imagem(models.Model):
 
     def __str__(self):
         return f"Imagem do Exame {self.exame.id}"
+
+# Relacionamento One-to-One entre Exame e Laudo    
+class Laudo(models.Model):
+    exame = models.OneToOneField(Exame, on_delete=models.CASCADE, related_name='laudo')
+    conteudo = models.TextField()
+    medico = models.ForeignKey('Medico', on_delete=models.PROTECT, related_name='laudos_assinados')
+    paciente = models.ForeignKey('Paciente', on_delete=models.CASCADE)
+    imagem = models.OneToOneField('Imagem', on_delete=models.CASCADE)
+    modelo_ia = models.ForeignKey('ModeloIA', on_delete=models.PROTECT)
+
+    # Resultados da IA
+    resultado_ia = models.CharField(max_length=100)
+    tipo_cancer = models.CharField(max_length=100, blank=True, null=True)
+    score_confianca = models.FloatField()
+
+    # Validação Médica
+    concorda_ia = models.BooleanField(default=False)
+    parecer_medico = models.TextField(verbose_name="Objeções ou Observações")
+    data_assinatura = models.DateTimeField(auto_now_add=True)
+
+    # Integridade e Segurança
+    hash_assinatura = models.CharField(max_length=255, editable=False)
+
+    def __str__(self):
+        return f"Laudo do Exame {self.exame.id} - Paciente: {self.paciente.nome}"

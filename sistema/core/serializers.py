@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Medico, Exame, Imagem, Usuario, Paciente
+from .models import Medico, Exame, Imagem, Usuario, Paciente, Laudo
 
 class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
@@ -29,3 +29,9 @@ class ImagemSerializer(serializers.ModelSerializer):
    class Meta:
       model = Imagem
       fields = ['path','exame']
+
+class LaudoSerializer(serializers.ModelSerializer):
+   exame = ExameSerializer(read_only=True)
+   class Meta:
+      model = Laudo
+      fields = ['exame','conteudo','data_criacao']  
