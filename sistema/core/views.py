@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from .models import Medico, Exame, Imagem, Usuario, Paciente, Laudo
 from .serializers import UsuarioSerializer, PacienteSerializer, MedicoSerializer, ExameSerializer, ImagemSerializer, LaudoSerializer
-from django.shortcurts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect
 
 # Create your views here.
 class UsuarioViewSet(viewsets.ModelViewSet):
