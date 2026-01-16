@@ -51,3 +51,7 @@ def visualizar_laudo(request, exame_id):
     }
 
     return render(request, 'core/visualizar_laudo.html', contexto)
+
+class LaudoViewSet(viewsets.ModelViewSet):
+    queryset = Laudo.objects.all()
+    serializer_class = LaudoSerializer  

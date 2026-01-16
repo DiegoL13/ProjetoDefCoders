@@ -35,3 +35,12 @@ class LaudoSerializer(serializers.ModelSerializer):
    class Meta:
       model = Laudo
       fields = ['exame','conteudo','data_criacao']  
+
+class LaudoCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Laudo
+        fields = ['exame', 'conteudo']      
+        read_only_fields = ['data_criacao']
+    def create(self, validated_data):
+        laudo = Laudo.objects.create(**validated_data)
+        return laudo   
