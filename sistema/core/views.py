@@ -2,6 +2,9 @@ from rest_framework import viewsets
 from .models import Medico, Exame, Imagem, Usuario, Paciente, Laudo
 from .serializers import UsuarioSerializer, PacienteSerializer, MedicoSerializer, ExameSerializer, ImagemSerializer, LaudoSerializer
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from .models import Laudo, ConfiguracaoLaudo
+from .utils import render_to_pdf
 
 # Create your views here.
 class UsuarioViewSet(viewsets.ModelViewSet):
@@ -55,3 +58,24 @@ def visualizar_laudo(request, exame_id):
 class LaudoViewSet(viewsets.ModelViewSet):
     queryset = Laudo.objects.all()
     serializer_class = LaudoSerializer  
+
+@login_required
+def exportar_laudo_pdf(request, laudo_id):
+    laudo = get_object_or_404(Laudo, id=laudo_id)
+    
+# Busca configuração da instituição
+    config = ConfiguracaoLaudo.objects.filter(usuario=laudo.medico).first()
+
+    context = {
+        'laudo': laudo,
+        'config': config,
+        'data_emissao': laudo.data_assinatura,
+    }
+
+# Registro de ação no AuditLog
+    from .models import AuditLog
+    AuditLog.registrar_acao(f"Exportou PDF do laudo: {laudo.id}")
+
+    return render_to_pdf('pdf/laudo_final.html', context)
+
+
