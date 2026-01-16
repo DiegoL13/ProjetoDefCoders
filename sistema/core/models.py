@@ -1,6 +1,9 @@
+import hashlib
+import json
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager, User
 from .choices import *
+from django.utils import timezone
 
 class UsuarioManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -88,18 +91,51 @@ class Laudo(models.Model):
     imagem = models.OneToOneField('Imagem', on_delete=models.CASCADE)
     modelo_ia = models.ForeignKey('ModeloIA', on_delete=models.PROTECT)
 
-    # Resultados da IA
+# Resultados da IA
     resultado_ia = models.CharField(max_length=100)
     tipo_cancer = models.CharField(max_length=100, blank=True, null=True)
     score_confianca = models.FloatField()
 
-    # Validação Médica
+# Validação Médica
     concorda_ia = models.BooleanField(default=False)
     parecer_medico = models.TextField(verbose_name="Objeções ou Observações")
     data_assinatura = models.DateTimeField(auto_now_add=True)
 
-    # Integridade e Segurança
+# Integridade e Segurança
     hash_assinatura = models.CharField(max_length=255, editable=False)
 
     def __str__(self):
         return f"Laudo do Exame {self.exame.id} - Paciente: {self.paciente.nome}"
+
+# Gera um hash único baseado nos dados do laudo  
+    def save(self, *args, **kwargs):
+        if not self.hash_assinatura: 
+            self.hash_assinatura = self.gerar_hash_integridade()
+
+# Salva o objeto primeiro para garantir que tenha um ID
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+
+# Registro automático em AuditLog
+        acao_desc = "Criação de Laudo" if is_new else "Finalização/Assinatura de Laudo"
+
+        AuditLog.objects.create(
+            usuario=self.medico,
+            acao=f"{acao_desc} ID: {self.id}",
+            ip_origem="" # Pode ser preenchido com o IP real se disponível
+        )
+   
+# Salvar automaticamente o hash e o Log de Auditoria
+# Conteúdo obrigatório do log de auditoria
+class AuditLog(models.Model):
+    usuario = models.ForeignKey('auth.User', on_delete=models.PROTECT)
+    acao = models.CharField(max_length=255)
+    timestamp = models.DateTimeField(default=timezone.now)
+    detalhes = models.TextField(blank=True, null=True)
+    ip_origem = models.GenericIPAddressField(blank=True, null=True) 
+
+# Impede edição via admin
+    def save(self, *args, **kwargs):
+        if self.detalhes:
+            raise PermissionError("Registro de log não pode ser modificado após criação.")
+        super().save(*args, **kwargs)
