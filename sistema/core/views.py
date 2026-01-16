@@ -18,6 +18,38 @@ class MedicoViewSet(viewsets.ModelViewSet):
     queryset = Medico.objects.all()
     serializer_class = MedicoSerializer
 
+# sistema/core/views.py
+
+class MedicoExameViewSet(viewsets.ModelViewSet):
+    # Usa o mesmo serializer, pois os dados do exame são os mesmos
+    serializer_class = ExameSerializer
+
+    def get_queryset(self):
+        # Pega o ID do médico vindo da URL
+        medico_id = self.kwargs.get('medico_id')
+        if medico_id is None:
+            return Exame.objects.none()
+        # Filtra os exames onde o campo 'medico' é igual ao ID capturado
+        return Exame.objects.filter(medico_id=medico_id)
+
+    def list(self, request, *args, **kwargs):
+        # Lógica para filtrar e serializar os dados
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            exames_data = serializer.data
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+            exames_data = serializer.data
+
+        context = {
+            'medico_id': kwargs.get('medico_id'),
+            'exames': exames_data,
+        }
+        # Renderiza um template específico para o médico (vamos criar no passo 3)
+        return render(request, 'core/medico_exames.html', context)
 
 class ExameViewSet(viewsets.ModelViewSet):
     queryset = Exame.objects.all()
