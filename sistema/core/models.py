@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager, User
 from .choices import *
 from django.utils import timezone
+from .middleware import get_current_request
 
 class UsuarioManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -130,12 +131,35 @@ class Laudo(models.Model):
 class AuditLog(models.Model):
     usuario = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     acao = models.CharField(max_length=255)
-    timestamp = models.DateTimeField(default=timezone.now)
-    detalhes = models.TextField(blank=True, null=True)
-    ip_origem = models.GenericIPAddressField(blank=True, null=True) 
+    timestamp = models.DateTimeField(auto_now_add=True)
+    ip_origem = models.GenericIPAddressField() 
+
+    @staticmethod
+    def registrar_acao(acao_desc):
+        request = get_current_request()
+        
+        if request and request.user.is_authenticated:
+            AuditLog.objects.create(
+                usuario=request.user,
+                acao=acao_desc,
+                ip_origem=getattr(request, 'user_ip', '0.0.0.0')
+            )
 
 # Impede edição via admin
     def save(self, *args, **kwargs):
         if self.detalhes:
             raise PermissionError("Registro de log não pode ser modificado após criação.")
         super().save(*args, **kwargs)
+
+def save(self, *args, **kwargs):
+    is_new = self.pk is None
+    if not self.hash_assinatura:
+        self.hash_assinatura = self.gerar_hash_integridade()
+
+    super().save(*args, **kwargs)
+
+# Registro automático
+    desc = f"Criou Laudo ID: {self.id}" if is_new else f"Validou o Laudo ID: {self.id}"
+    AuditLog.registrar_acao(desc)
+
+
