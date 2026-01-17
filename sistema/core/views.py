@@ -121,20 +121,35 @@ def cadastro_medico(request):
         form = MedicoCreationForm()
     return render(request, 'core/cadastro_medico.html', {'form': form})
 
+# sistema/core/views.py
+
 class CustomLoginView(LoginView):
-    # Usa o seu formulário de login personalizado
     authentication_form = LoginForm 
     template_name = 'core/login.html'
+
+    def form_valid(self, form):
+        # Pega o usuário que está tentando logar
+        user = form.get_user()
+
+        # Verifica se o usuário NÃO tem perfil de médico E NÃO tem perfil de paciente
+        if not hasattr(user, 'medico') and not hasattr(user, 'paciente'):
+            # Se não tiver perfil, adiciona uma mensagem de erro e cancela o login
+            form.add_error(None, "Acesso permitido apenas para Médicos e Pacientes. Administradores devem usar a rota /admin.")
+            return self.form_invalid(form)
+            
+        # Se tiver perfil, permite o login normal
+        return super().form_valid(form)
 
     def get_success_url(self):
         user = self.request.user
         
+        # Redirecionamento para Médicos
         if hasattr(user, 'medico'):
             return reverse_lazy('medico-exames-list', kwargs={'medico_id': user.medico.id})
             
-        # Verifica se o usuário tem um perfil de Paciente
-        elif hasattr(user, 'paciente'):
+        # Redirecionamento para Pacientes
+        if hasattr(user, 'paciente'):
             return reverse_lazy('paciente-exames-list', kwargs={'paciente_id': user.paciente.id})
             
-        # Se for superusuário (admin) ou outro tipo, manda para a raiz ou admin
-        return reverse_lazy('admin:index') # Ou '/' se preferir
+        # Caso de segurança (teoricamente inalcançável devido ao filtro acima)
+        return '/'

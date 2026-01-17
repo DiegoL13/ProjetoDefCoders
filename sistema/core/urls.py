@@ -2,8 +2,7 @@ from django.urls import path, include
 from rest_framework import routers
 from .views import *
 from . import views
-from .forms import LoginForm
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LogoutView
 
 router = routers.DefaultRouter()
 
