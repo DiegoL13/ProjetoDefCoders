@@ -1,7 +1,11 @@
 from rest_framework import viewsets
-from django.shortcuts import render
-from .models import Medico, Exame, Imagem, Usuario, Paciente
-from .serializers import UsuarioSerializer, PacienteSerializer, MedicoSerializer, ExameSerializer, ImagemSerializer
+from django.shortcuts import render, redirect
+from .models import *
+from .serializers import *
+from django.contrib.auth import login
+from .forms import PacienteCreationForm, MedicoCreationForm, LoginForm
+from django.contrib.auth.views import LoginView
+from django.urls import reverse_lazy
 
 # Create your views here.
 class UsuarioViewSet(viewsets.ModelViewSet):
@@ -94,3 +98,43 @@ class PacienteExameViewSet(viewsets.ModelViewSet):
         }
         return render(request, 'core/paciente_exames.html', context)
     
+
+def cadastro_paciente(request):
+    if request.method == 'POST':
+        form = PacienteCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user) # Faz o login automático após cadastro
+            return redirect('paciente-exames-list', paciente_id=user.id) # Redireciona para a home ou dashboard
+    else:
+        form = PacienteCreationForm()
+    return render(request, 'core/cadastro_paciente.html', {'form': form})
+
+def cadastro_medico(request):
+    if request.method == 'POST':
+        form = MedicoCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('medico-exames-list', medico_id=user.id) 
+    else:
+        form = MedicoCreationForm()
+    return render(request, 'core/cadastro_medico.html', {'form': form})
+
+class CustomLoginView(LoginView):
+    # Usa o seu formulário de login personalizado
+    authentication_form = LoginForm 
+    template_name = 'core/login.html'
+
+    def get_success_url(self):
+        user = self.request.user
+        
+        if hasattr(user, 'medico'):
+            return reverse_lazy('medico-exames-list', kwargs={'medico_id': user.medico.id})
+            
+        # Verifica se o usuário tem um perfil de Paciente
+        elif hasattr(user, 'paciente'):
+            return reverse_lazy('paciente-exames-list', kwargs={'paciente_id': user.paciente.id})
+            
+        # Se for superusuário (admin) ou outro tipo, manda para a raiz ou admin
+        return reverse_lazy('admin:index') # Ou '/' se preferir

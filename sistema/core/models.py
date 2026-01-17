@@ -44,11 +44,11 @@ class Paciente(Usuario):
     historico_medico = models.TextField(blank=True, null=True)
 
 class Medico(Usuario):
-  CRM = models.CharField(max_length=20, unique=True)
+  crm = models.CharField(max_length=20, unique=True)
   especialidade = models.CharField(max_length=30)
 
   def __str__(self):
-    return "{self.nome} - {self.CRM}"
+    return "{self.nome} - {self.crm}"
   
 
 class Exame(models.Model):
