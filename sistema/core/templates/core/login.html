@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+
+    <h2>Login</h2>
+
+    {% if form.errors %}
+        <div style="color: red; padding: 10px; border: 1px solid red; margin-bottom: 10px;">
+            <p>Erro no login. Verifique seus dados.</p>
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Entrar</button>
+    </form>
+
+    <p>Não tem conta? <a href="{% url 'cadastro_paciente' %}">Cadastrar como Paciente</a> ou 
+    <a href="{% url 'cadastro_medico' %}">Médico</a></p>
+    
+</body>
+</html>

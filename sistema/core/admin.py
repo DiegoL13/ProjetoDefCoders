@@ -4,7 +4,8 @@ from .models import Medico, Exame, Imagem, Paciente
 # Register your models here.
 @admin.register(Medico)
 class MedicoAdmin(admin.ModelAdmin):
-  list_display = ['especialidade']
+  list_display = ['nome','especialidade']
+  exclude = ['password', 'last_login','groups', 'user_permissions']
 
 @admin.register(Exame)
 class ExameAdmin(admin.ModelAdmin):
@@ -17,3 +18,4 @@ class ImagemAdmin(admin.ModelAdmin):
 @admin.register(Paciente)
 class PacienteAdmin(admin.ModelAdmin):
     list_display = ['nome', 'cpf']
+    exclude = ['password', 'last_login', 'groups', 'user_permissions']

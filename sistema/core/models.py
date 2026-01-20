@@ -23,7 +23,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     cpf = models.CharField(max_length=11, unique=True)
     data_nascimento = models.DateField(null=True, blank=True)
     sexo = models.CharField(max_length=20, choices=SEXO_BIOLOG_CHOICES)
-    contato = models.CharField(max_length=45)
+    contato = models.CharField(max_length=45, blank=True, null=True)
     email = models.EmailField(unique=True)
     
     # IMPORTANTE: Adicione o Manager aqui
@@ -44,11 +44,11 @@ class Paciente(Usuario):
     historico_medico = models.TextField(blank=True, null=True)
 
 class Medico(Usuario):
-  CRM = models.CharField(max_length=20, unique=True)
+  crm = models.CharField(max_length=20, unique=True)
   especialidade = models.CharField(max_length=30)
 
   def __str__(self):
-    return str(self.CRM)
+    return "{self.nome} - {self.crm}"
   
 
 class Exame(models.Model):

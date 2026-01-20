@@ -9,7 +9,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
 class MedicoSerializer(UsuarioSerializer):
     class Meta(UsuarioSerializer.Meta):
         model = Medico
-        fields = UsuarioSerializer.Meta.fields + ['CRM', 'especialidade']
+        fields = UsuarioSerializer.Meta.fields + ['crm', 'especialidade']
 
 class PacienteSerializer(UsuarioSerializer):
     class Meta(UsuarioSerializer.Meta):
