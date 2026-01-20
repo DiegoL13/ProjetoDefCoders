@@ -23,7 +23,7 @@ class ImagemSerializer(serializers.ModelSerializer):
    exame = serializers.PrimaryKeyRelatedField(queryset=Exame.objects.all())
    class Meta:
       model = Imagem
-      fields = ['id','path','exame','data_upload','paciente' ]
+      fields = ['id','path','exame','data_upload']
 
 def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -68,17 +68,4 @@ class ImagemSerializer(serializers.ModelSerializer):
       model = Imagem
       fields = ['id','path','exame','data_upload' ]
 
-'''
-def create(self, validated_data):
-        
-        usuario_data = validated_data.pop('usuario')
 
-        usuario_instance = Usuario.objects.create(**usuario_data)
-
-
-        # 3. Criamos o Médico no banco (Tabela Filho), ligando ao usuário criado acima
-        medico_instance = Medico.objects.create(usuario=usuario_instance, **validated_data)
-
-        # 4. Retornamos a instância completa do médico
-        return medico_instance
-'''

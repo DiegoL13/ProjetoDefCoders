@@ -47,6 +47,8 @@ INSTALLED_APPS = [
 ]
 
 AUTH_USER_MODEL = 'core.Usuario'
+LOGIN_REDIRECT_URL = '/' # Ou a rota que você preferir
+LOGOUT_REDIRECT_URL = '/login/'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTENTICATION_CLASSES':(

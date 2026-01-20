@@ -33,24 +33,4 @@ class ImagemAdmin(admin.ModelAdmin):
         return "Sem Imagem"
     
     miniatura_imagem.short_description = "Pré-visualização"
-'''
-# Register your models here.
-@admin.register(Paciente)
-class PacienteAdmin(admin.ModelAdmin):
-  list_display = ['historico_medico']
 
-@admin.register(Medico)
-class MedicoAdmin(admin.ModelAdmin):
-  list_display = ['especialidade','crm']
-
-@admin.register(Exame)
-class ExameAdmin(admin.ModelAdmin):
-    list_display = ( 'data_criacao', 'medico', 'status', 'assinatura',
-   'liberado_para_paciente' )
-    list_filter = ()
-  
-
-@admin.register(Imagem)
-class ImagemAdmin(admin.ModelAdmin):
-  list_display = ['path']
-'''

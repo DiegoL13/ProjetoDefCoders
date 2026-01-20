@@ -19,3 +19,10 @@ STATUS_EXAME = [
     ('REVISADO', 'Revisado pelo Médico'),
     ('LIBERADO', 'Liberado para o Paciente')
 ]
+EXAME_ACTIONS = {
+    'created': 'Criado',
+    'updated': 'Atualizado',
+    'deleted': 'Deletado',
+    'viewed': 'Visualizado',
+    'result_added': 'Resultado Adicionado',
+}
