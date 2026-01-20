@@ -2,6 +2,7 @@ import time
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from .choices import *
+from django.conf import settings
 
 class UsuarioManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -26,7 +27,6 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     contato = models.CharField(max_length=45, blank=True, null=True)
     email = models.EmailField(unique=True)
     
-    # IMPORTANTE: Adicione o Manager aqui
     objects = UsuarioManager()
 
     # Configurações de Autenticação
@@ -36,47 +36,44 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
-
     def __str__(self):
         return self.nome
     
-class Paciente(Usuario):
+class Paciente(models.Model):
+    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,related_name='paciente')
     historico_medico = models.TextField(blank=True, null=True)
 
-class Medico(Usuario):
-  crm = models.CharField(max_length=20, unique=True)
-  especialidade = models.CharField(max_length=30)
+    def __str__(self):
+        return f"Paciente: {self.usuario.nome}"
 
-  def __str__(self):
-    return "{self.nome} - {self.crm}"
-  
+class Medico(models.Model):
+        usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,related_name='medico')
+        crm = models.CharField(max_length=20, unique=True)
+        especialidade = models.CharField(max_length=100, blank=True)
+
+        def __str__(self):
+            return f"Médico: {self.usuario.nome} - CRM: {self.crm}"
 
 class Exame(models.Model):
-  medico = models.ForeignKey(Medico, on_delete=models.CASCADE)
-  paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE) # Campo adicionado
+  medico = models.ForeignKey(Medico, on_delete=models.PROTECT)
+  status = models.CharField(max_length=20,choices=STATUS_EXAME,default="PENDENTE")
+  data_criacao = models.DateTimeField(auto_now_add=True)
+  paciente = models.ForeignKey(Paciente, on_delete=models.PROTECT) # Campo adicionado
   assinatura = models.CharField(max_length=100)
-  data = models.DateTimeField()
-  
-  tipo_escolha = (
-      ('ANALISADO POR IA', 'Analisado por IA'),
-      ('REVISADO POR HUMANO', 'Revisado por Humano')
-  )
-  tipo = models.CharField(choices=tipo_escolha, max_length=30)
-  
-  resultados = (
-      ('BENIGNO','Benigno'),
-      ('MALIGNO', 'Maligno'),
-      ('SAUDÁVEL', 'Saudável')
-  )
-  resultado = models.CharField(choices=resultados, max_length=20)
+  descricao = models.TextField(blank=True) 
+  liberado_para_paciente = models.BooleanField(default=False)
+#resultado = models.CharField(choices=resultados, max_length=20)
+def __str__(self):
+      return f"Exame de {self.paciente.usuario.nome} ({self.data_criacao.strftime('%Y-%m-%d')})"
 
-  def __str__(self):
-      return f"Exame de {self.paciente.nome} ({self.data})"
+def caminho_upload_exame(instance, filename):
+    # Note o uso de .exame_id em vez de .exame.id
+    return f'imagens_exames/exame_{instance.exame_id}/{filename}'
 
 class Imagem(models.Model):
     exame = models.ForeignKey(Exame, on_delete=models.CASCADE, related_name='imagens')
-    path = models.ImageField(upload_to='imagens_exames/') # Caminho de upload definido
-
+    path = models.ImageField(upload_to=caminho_upload_exame) 
+    data_upload = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return f"Imagem do Exame {self.exame.id}"
     

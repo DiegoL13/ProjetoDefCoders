@@ -1,7 +1,9 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser #para não dar erro no json ao fazer upload de imagens
+from .models import Medico, Exame, Imagem, Usuario, Paciente, Imagem
+from .serializers import UsuarioSerializer, PacienteSerializer, MedicoSerializer, ExameSerializer,ExameDetailSerializer, ImagemSerializer
 from django.shortcuts import render, redirect
-from .models import *
-from .serializers import *
 from django.contrib.auth import login
 from .forms import PacienteCreationForm, MedicoCreationForm, LoginForm
 from django.contrib.auth.views import LoginView
@@ -21,6 +23,7 @@ class PacienteViewSet(viewsets.ModelViewSet):
 class MedicoViewSet(viewsets.ModelViewSet):
     queryset = Medico.objects.all()
     serializer_class = MedicoSerializer
+    
 
 # sistema/core/views.py
 
@@ -56,13 +59,49 @@ class MedicoExameViewSet(viewsets.ModelViewSet):
         return render(request, 'core/medico_exames.html', context)
 
 class ExameViewSet(viewsets.ModelViewSet):
-    queryset = Exame.objects.all()
     serializer_class = ExameSerializer
 
+    def get_queryset(self):
+        user = self.request.user
+        
+        # Se não estiver logado, não vê nada
+        if not user.is_authenticated:
+            return Exame.objects.none()
+
+        #Médico vê todos os exames que ele criou
+        if hasattr(user, 'medico'):
+            return Exame.objects.filter(medico=user.medico)
+
+        #Paciente
+        elif hasattr(user, 'paciente'):
+            return Exame.objects.filter(
+                paciente=user.paciente,
+                liberado_para_paciente=True # Só vê se estiver liberado
+            )
+
+        return Exame.objects.none()
+    
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return ExameDetailSerializer
+        return ExameSerializer
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if hasattr(request.user, 'medico'):
+            serializer.save(medico=request.user.medico)
+        else:
+            serializer.save()
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 class ImagemViewSet(viewsets.ModelViewSet):
     queryset = Imagem.objects.all()
     serializer_class = ImagemSerializer
+    parser_classes = (MultiPartParser, FormParser)
 
 
 class PacienteExameViewSet(viewsets.ModelViewSet):
@@ -76,11 +115,7 @@ class PacienteExameViewSet(viewsets.ModelViewSet):
         return Exame.objects.filter(paciente_id=paciente_id)
 
     def list(self, request, *args, **kwargs):
-        """Return the paciente_exames template populated with serialized exames.
 
-        This renders the same template the JS would consume but server-side,
-        using the queryset returned by `get_queryset`.
-        """
         queryset = self.filter_queryset(self.get_queryset())
 
         # support pagination if configured
