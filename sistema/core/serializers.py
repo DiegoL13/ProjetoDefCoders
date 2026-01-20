@@ -16,16 +16,40 @@ class PacienteSerializer(UsuarioSerializer):
         model = Paciente
         fields = UsuarioSerializer.Meta.fields + ['historico_medico']
 
-class ExameSerializer(serializers.ModelSerializer):
-   medico = MedicoSerializer(read_only=True)
-   paciente = PacienteSerializer(read_only=True)
-   class Meta:
-      model = Exame
-      fields = ['medico','paciente','assinatura','data','tipo','resultado']
-      
 
 class ImagemSerializer(serializers.ModelSerializer):
-   exame = ExameSerializer(read_only=True)
-   class Meta:
-      model = Imagem
-      fields = ['path','exame']
+    
+    class Meta:
+        model = Imagem
+        fields = ['id', 'path', 'exame']
+
+
+class ExameSerializer(serializers.ModelSerializer):
+    # Leitura (Aninhados)
+    medico = MedicoSerializer(read_only=True)
+    paciente_detail = PacienteSerializer(source='paciente', read_only=True)
+    imagens = ImagemSerializer(many=True, read_only=True)
+
+    # Escrita (IDs)
+    paciente = serializers.PrimaryKeyRelatedField(queryset=Paciente.objects.all())
+    
+    # Upload de Imagens (Write Only - Apenas para receber os arquivos)
+    imagens_upload = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
+    )
+
+    class Meta:
+        model = Exame
+        fields = [
+            'id', 'medico', 'paciente', 'paciente_detail', 'data_criacao', 'resultado_ia', 
+            'resultado_medico', 'assinatura', 'disponibilidade', 'imagens', 
+            'imagens_upload'
+        ]
+        extra_kwargs = {
+            'resultado_medico': {'required': False},
+            'resultado_ia': {'required': False},
+            'assinatura': {'required': False},
+            'disponibilidade': {'required': False},
+        }

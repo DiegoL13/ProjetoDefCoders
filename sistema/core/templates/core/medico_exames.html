@@ -2,28 +2,196 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <title>Exames do Médico {{ medico_id|default:0 }}</title>
-  </head>
+  <title>Painel Médico</title>
+  <style>
+      body { font-family: sans-serif; margin: 20px; background: #f4f6f8; }
+      .container { max-width: 900px; margin: 0 auto; }
+      .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
+      .form-group { margin-bottom: 15px; }
+      label { display: block; margin-bottom: 5px; font-weight: bold; }
+      input, select { padding: 8px; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+      button { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+      button:hover { background: #0056b3; }
+      .btn-save { background: #28a745; margin-top: 10px; }
+      .edit-area { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc; display: none; }
+      .meta { color: #666; font-size: 0.9em; margin-bottom: 5px; }
+      .badge { display: inline-block; padding: 3px 6px; border-radius: 4px; font-size: 0.8em; color: white; }
+      .bg-true { background-color: #28a745; }
+      .bg-false { background-color: #dc3545; }
+  </style>
+</head>
 <body>
   <div class="container">
-    <h1>Painel do Médico - Exames Vinculados (ID: {{ medico_id }})</h1>
-    
-    <div id="exames">
+    <h1>Painel do Médico (ID: {{ medico_id }})</h1>
+
+    <div class="card">
+        <h3>1. Solicitar Novo Exame</h3>
+        <form id="formCriarExame">
+            <div class="form-group">
+                <label for="pacienteId">ID do Paciente:</label>
+                <input type="number" id="pacienteId" required placeholder="Digite o ID do paciente">
+            </div>
+            
+            <div class="form-group">
+                <label for="imagens">Imagens do Exame:</label>
+                <input type="file" id="imagens" multiple accept="image/*" required>
+                <small style="color:#666">Selecione uma ou mais imagens.</small>
+            </div>
+
+            <button type="submit">Enviar Imagens e Criar Exame</button>
+        </form>
+        <div id="mensagem"></div>
+    </div>
+
+    <hr>
+
+    <h3>2. Exames Recentes</h3>
+    <div id="exames-lista">
       {% if exames %}
         {% for exame in exames %}
-          <div class="exame">
-            <div><strong>Paciente:</strong> {{ exame.paciente.nome }}</div>
-            <div class="meta">{{ exame.data }}</div>
-            <div>
-              <div><strong>Tipo:</strong> {{ exame.tipo }}</div>
-              <div><strong>Resultado:</strong> {{ exame.resultado }}</div>
+          <div class="card exame-item" id="card-{{ exame.id }}">
+            <div style="display:flex; justify-content:space-between;">
+                <div>
+                    <h4>Exame #{{ exame.id }} - Paciente: {{ exame.paciente.nome }}</h4>
+                    <div class="meta">Data: {{ exame.data_criacao }}</div>
+                    <div class="meta">Assinado por: <strong>{{ exame.assinatura }}</strong></div>
+                    <div style="margin-top:5px;">
+                        IA Sugere: <strong>{{ exame.resultado_ia }}</strong>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div>Disponível: 
+                        <span id="badge-disp-{{exame.id}}" class="badge {% if exame.disponibilidade %}bg-true{% else %}bg-false{% endif %}">
+                            {% if exame.disponibilidade %}SIM{% else %}NÃO{% endif %}
+                        </span>
+                    </div>
+                    <div style="margin-top:5px;">Atual: <strong id="res-atual-{{exame.id}}">{{ exame.resultado_medico }}</strong></div>
+                    
+                    <button type="button" onclick="toggleEdit({{ exame.id }})" style="margin-top:10px; background:#6c757d;">Avaliar / Editar</button>
+                </div>
+            </div>
+
+            <div id="edit-area-{{ exame.id }}" class="edit-area">
+                <h4>Atualizar Diagnóstico</h4>
+                <div class="form-group">
+                    <label>Seu Parecer (Resultado Médico):</label>
+                    <select id="edit-resultado-{{ exame.id }}">
+                        <option value="BENIGNO" {% if exame.resultado_medico == 'BENIGNO' %}selected{% endif %}>Benigno</option>
+                        <option value="MALIGNO" {% if exame.resultado_medico == 'MALIGNO' %}selected{% endif %}>Maligno</option>
+                        <option value="SAUDÁVEL" {% if exame.resultado_medico == 'SAUDÁVEL' %}selected{% endif %}>Saudável</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="edit-disp-{{ exame.id }}" {% if exame.disponibilidade %}checked{% endif %}>
+                        Liberar para o paciente (Disponibilidade)
+                    </label>
+                </div>
+                <button class="btn-save" onclick="salvarAlteracoes({{ exame.id }})">Salvar Alterações</button>
             </div>
           </div>
         {% endfor %}
       {% else %}
-        <p>Nenhum exame encontrado para este médico.</p>
+        <p>Nenhum exame encontrado.</p>
       {% endif %}
     </div>
   </div>
-  </body>
+
+  <script>
+    // --- Lógica de Criação (POST com Imagens) ---
+    document.getElementById('formCriarExame').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const msgDiv = document.getElementById('mensagem');
+        msgDiv.innerText = "Enviando imagens...";
+
+        // Usamos FormData para enviar arquivos
+        const formData = new FormData();
+        formData.append('paciente', document.getElementById('pacienteId').value);
+        
+        // Adiciona cada arquivo selecionado ao FormData
+        const fileInput = document.getElementById('imagens');
+        for (let i = 0; i < fileInput.files.length; i++) {
+            formData.append('imagens_upload', fileInput.files[i]);
+        }
+
+        try {
+            const response = await fetch('/core/exames/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                    // Não defina Content-Type aqui, o browser define automaticamente para multipart/form-data
+                },
+                body: formData
+            });
+
+            if (response.ok) {
+                msgDiv.innerHTML = "<span style='color:green'>Exame criado! Recarregando...</span>";
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                const err = await response.json();
+                msgDiv.innerHTML = "<span style='color:red'>Erro: " + JSON.stringify(err) + "</span>";
+            }
+        } catch (error) {
+            console.error(error);
+            msgDiv.innerText = "Erro de conexão.";
+        }
+    });
+
+    // --- Lógica de Edição (PATCH) ---
+    function toggleEdit(id) {
+        const area = document.getElementById(`edit-area-${id}`);
+        area.style.display = area.style.display === 'block' ? 'none' : 'block';
+    }
+
+    async function salvarAlteracoes(id) {
+        const novoResultado = document.getElementById(`edit-resultado-${id}`).value;
+        const novaDisponibilidade = document.getElementById(`edit-disp-${id}`).checked;
+
+        try {
+            const response = await fetch(`/core/exames/${id}/`, {
+                method: 'PATCH', // PATCH atualiza apenas os campos enviados
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    resultado_medico: novoResultado,
+                    disponibilidade: novaDisponibilidade
+                })
+            });
+
+            if (response.ok) {
+                alert("Atualizado com sucesso!");
+                // Atualiza visualmente sem recarregar tudo
+                document.getElementById(`res-atual-${id}`).innerText = novoResultado;
+                const badge = document.getElementById(`badge-disp-${id}`);
+                badge.className = novaDisponibilidade ? 'badge bg-true' : 'badge bg-false';
+                badge.innerText = novaDisponibilidade ? 'SIM' : 'NÃO';
+                toggleEdit(id); // Fecha a área
+            } else {
+                alert("Erro ao atualizar.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Erro de conexão");
+        }
+    }
+
+    // Auxiliar CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+  </script>
+</body>
 </html>

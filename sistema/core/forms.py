@@ -1,7 +1,7 @@
 # sistema/core/forms.py
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
-from .models import Paciente, Medico
+from .models import *
 
 class LoginForm(AuthenticationForm):
     # Personalizando o form de login para usar classes CSS (opcional)
@@ -45,3 +45,4 @@ class MedicoCreationForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+    

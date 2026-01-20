@@ -18,6 +18,8 @@
     .page-btn.active{background:#0b5fff;color:#fff}
     .controls{margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
     .small{font-size:0.9em;color:#444}
+    .status-pending{color: #e67e22; font-style: italic;}
+    .ia-result{font-size: 0.85em; color: #7f8c8d; margin-top: 4px;}
   </style>
 </head>
 <body>
@@ -37,6 +39,7 @@
     </div>
 
     <div id="loading">Carregando exames...</div>
+    
     <div id="exames">
       {% if exames %}
         {% for exame in exames %}
@@ -44,10 +47,18 @@
             <div><strong>{{ exame.tipo|default:"Exame" }}</strong></div>
             <div class="meta">{{ exame.data }}</div>
             <div>
-              <div><strong>Resultado:</strong> {{ exame.resultado }}</div>
-              <div><strong>Assinatura:</strong> {{ exame.assinatura }}</div>
-              <div><strong>Médico:</strong> {{ exame.medico.nome }}{% if exame.medico.CRM %} (CRM: {{ exame.medico.CRM }}){% endif %}</div>
-              <div><strong>Paciente:</strong> {{ exame.paciente.nome }}</div>
+              {% if exame.disponibilidade %}
+                  <div><strong>Resultado Médico:</strong> {{ exame.resultado_medico }}</div>
+                  <div class="ia-result"><strong>Análise IA:</strong> {{ exame.resultado_ia }}</div>
+                  <div><strong>Assinatura:</strong> {{ exame.assinatura }}</div>
+              {% else %}
+                  <div class="status-pending">Aguardando liberação do médico.</div>
+              {% endif %}
+              
+              <div style="margin-top:8px; border-top:1px solid #eee; padding-top:5px;">
+                  <strong>Médico Responsável:</strong> {{ exame.medico.nome }}
+                  {% if exame.medico.CRM %} (CRM: {{ exame.medico.CRM }}){% endif %}
+              </div>
             </div>
           </div>
         {% endfor %}
@@ -63,8 +74,8 @@
 
   <script>
   (function(){
-    const pacienteId = {{ paciente_id|default:0 }};
-    const apiUrl = `/pacientes/${pacienteId}/exames/`;
+    const pacienteId = parseInt("{{ paciente_id|default:0 }}", 10);
+    const apiUrl = `/pacientes/${pacienteId}/exames/`; // Ajuste conforme sua rota correta
     
     function renderField(key, value){
       return `<div><strong>${key}:</strong> ${value == null ? '' : String(value)}</div>`;
@@ -95,25 +106,36 @@
         const el = document.createElement('div');
         el.className = 'exame';
         const titulo = exame.tipo || (`Exame #${exame.id || ''}`);
-        const meta = exame.data || '';
-        el.innerHTML = `<div><strong>${titulo}</strong></div><div class="meta">${meta}</div>`;
+        const meta = exame.data || ''; // Formate a data se necessário
+        
+        let htmlContent = `<div><strong>${titulo}</strong></div><div class="meta">${meta}</div>`;
+        htmlContent += '<div>';
 
-        const fields = document.createElement('div');
-        const resultado = exame.resultado || '';
-        const assinatura = exame.assinatura || '';
-        const medicoInfo = exame.medico ? ((exame.medico.nome || '') + (exame.medico.CRM ? ' (CRM: ' + exame.medico.CRM + ')' : '')) : '';
-        const pacienteNome = exame.paciente ? (exame.paciente.nome || '') : '';
+        // Lógica de Disponibilidade (Client-Side)
+        if (exame.disponibilidade) {
+            const resMedico = exame.resultado_medico || '---';
+            const resIA = exame.resultado_ia || '---';
+            const assinatura = exame.assinatura || '---';
+            
+            htmlContent += `<div><strong>Resultado Médico:</strong> ${resMedico}</div>`;
+            htmlContent += `<div class="ia-result"><strong>Análise IA:</strong> ${resIA}</div>`;
+            htmlContent += `<div><strong>Assinatura:</strong> ${assinatura}</div>`;
+        } else {
+            htmlContent += `<div class="status-pending">Aguardando liberação do médico.</div>`;
+        }
 
-        fields.insertAdjacentHTML('beforeend', renderField('Resultado', resultado));
-        fields.insertAdjacentHTML('beforeend', renderField('Assinatura', assinatura));
-        fields.insertAdjacentHTML('beforeend', renderField('Médico', medicoInfo));
-        fields.insertAdjacentHTML('beforeend', renderField('Paciente', pacienteNome));
+        // Informações do Médico
+        const medicoNome = exame.medico ? (exame.medico.nome || '') : 'Desconhecido';
+        const medicoCrm = (exame.medico && exame.medico.crm) ? `(CRM: ${exame.medico.crm})` : ''; // Verifique se o serializer retorna 'crm' ou 'CRM'
+        
+        htmlContent += `<div style="margin-top:8px; border-top:1px solid #eee; padding-top:5px;"><strong>Médico Responsável:</strong> ${medicoNome} ${medicoCrm}</div>`;
+        htmlContent += '</div>'; // fecha div interna
 
-        el.appendChild(fields);
+        el.innerHTML = htmlContent;
         container.appendChild(el);
       });
 
-      // pager
+      // pager logic
       const pager = document.getElementById('pager');
       const pagesEl = document.getElementById('pages');
       pagesEl.innerHTML = '';
@@ -136,18 +158,22 @@
       document.getElementById('pageSizeSelect').addEventListener('change',(e)=>{ pageSize = parseInt(e.target.value,10)||10; currentPage = 1; renderPage(); });
     }
 
+    // Busca dados via API (caso a página use renderização híbrida)
     fetch(apiUrl)
       .then(res => { if(!res.ok) throw new Error(res.status + ' ' + res.statusText); return res.json(); })
       .then(data => {
         const loading = document.getElementById('loading');
         loading && loading.remove();
-        allExames = Array.isArray(data) ? data : (data ? [data] : []);
+        // A API pode retornar paginada ou lista direta. Ajuste conforme seu ViewSet.
+        // Se for DRF padrão pagination: data.results. Se for list: data.
+        allExames = Array.isArray(data) ? data : (data.results ? data.results : [data]);
         setupControls();
         renderPage();
       })
       .catch(err => {
         const loading = document.getElementById('loading');
         if(loading) loading.textContent = 'Erro ao carregar exames: ' + err.message;
+        console.error(err);
       });
   })();
   </script>

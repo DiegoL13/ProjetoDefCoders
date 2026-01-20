@@ -12,3 +12,9 @@ EXAME_ACTIONS = {
     'viewed': 'Visualizado',
     'result_added': 'Resultado Adicionado',
 }
+
+RESULTADOS = (
+      ('BENIGNO','Benigno'),
+      ('MALIGNO', 'Maligno'),
+      ('SAUDÁVEL', 'Saudável')
+  )

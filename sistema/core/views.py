@@ -3,9 +3,10 @@ from django.shortcuts import render, redirect
 from .models import *
 from .serializers import *
 from django.contrib.auth import login
-from .forms import PacienteCreationForm, MedicoCreationForm, LoginForm
+from .forms import *
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
+import random
 
 # Create your views here.
 class UsuarioViewSet(viewsets.ModelViewSet):
@@ -59,6 +60,35 @@ class ExameViewSet(viewsets.ModelViewSet):
     queryset = Exame.objects.all()
     serializer_class = ExameSerializer
 
+    def perform_create(self, serializer):
+        # 1. Validação de Médico
+        if not hasattr(self.request.user, 'medico'):
+            raise serializers.ValidationError("Apenas médicos podem criar exames.")
+        
+        medico_logado = self.request.user.medico
+
+        # 2. Lógica Automática (IA e Assinatura)
+        opcoes = [opcao[0] for opcao in RESULTADOS]
+        resultado_ia_aleatorio = random.choice(opcoes)
+        assinatura_automatica = medico_logado.nome
+
+        # Define um valor padrão temporário para o resultado médico se não for enviado
+        # (Assumindo que no banco temos um default, ou usamos um dos choices válidos)
+        res_medico = serializer.validated_data.get('resultado_medico', 'SAUDÁVEL')
+
+        # 3. Salva o Exame
+        exame = serializer.save(
+            medico=medico_logado,
+            resultado_ia=resultado_ia_aleatorio,
+            assinatura=assinatura_automatica,
+            resultado_medico=res_medico,
+            disponibilidade=False # Começa indisponível
+        )
+
+        # 4. Processamento das Imagens
+        imagens = self.request.FILES.getlist('imagens_upload')
+        for image_file in imagens:
+            Imagem.objects.create(exame=exame, path=image_file)
 
 class ImagemViewSet(viewsets.ModelViewSet):
     queryset = Imagem.objects.all()
@@ -153,3 +183,7 @@ class CustomLoginView(LoginView):
             
         # Caso de segurança (teoricamente inalcançável devido ao filtro acima)
         return '/'
+    
+
+
+
