@@ -3,179 +3,189 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Exames do Paciente {{ paciente_id|default:0 }}</title>
+  <title>Portal do Paciente - Dashboard de Exames</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    body{font-family:Arial,Helvetica,sans-serif;margin:20px;background:#f7f9fb}
-    .container{max-width:900px;margin:0 auto}
-    .exame{background:#fff;border:1px solid #e3e8ee;padding:14px;margin:12px 0;border-radius:8px;box-shadow:0 1px 2px rgba(16,24,40,0.03)}
-    .meta{color:#666;font-size:0.9em;margin-bottom:6px}
-    .empty{color:#444;font-style:italic;padding:12px}
-    .pager{display:flex;align-items:center;gap:8px;margin:14px 0;flex-wrap:wrap}
-    .pager .pages{display:flex;gap:6px}
-    .btn{background:#0b5fff;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer}
-    .btn[disabled]{opacity:0.5;cursor:default}
-    .page-btn{background:#fff;color:#0b5fff;border:1px solid #dbe7ff;padding:6px 9px;border-radius:6px;cursor:pointer}
-    .page-btn.active{background:#0b5fff;color:#fff}
-    .controls{margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
-    .small{font-size:0.9em;color:#444}
-    .status-pending{color: #e67e22; font-style: italic;}
-    .ia-result{font-size: 0.85em; color: #7f8c8d; margin-top: 4px;}
+    :root {
+      --primary: #2563eb;
+      --bg-body: #f8fafc;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --card-bg: #ffffff;
+    }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--bg-body); color: var(--text-main); line-height: 1.6; }
+    .sidebar { width: 260px; background: #1e293b; color: white; height: 100vh; position: fixed; padding: 20px; box-sizing: border-box; }
+    .main-content { margin-left: 260px; padding: 40px; }
+    .header-dashboard { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    
+    /* Grid de estatísticas rápidas */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .stat-card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid var(--primary); }
+    .stat-card h3 { margin: 0; font-size: 0.9em; color: var(--text-muted); text-transform: uppercase; }
+    .stat-card p { margin: 5px 0 0; font-size: 1.8em; font-weight: bold; }
+
+    /* Estilização da lista de exames como cards intuitivos */
+    .exame-card { background: var(--card-bg); border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: transform 0.2s; border: 1px solid #e2e8f0; }
+    .exame-card:hover { transform: translateY(-2px); }
+    .exame-header { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 15px; }
+    .protocolo { font-weight: bold; color: var(--primary); font-size: 0.9em; }
+    .data { color: var(--text-muted); font-size: 0.9em; }
+    
+    .exame-body { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    .resultado-principal { font-size: 1.2em; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+    .ia-badge { background: #eff6ff; color: var(--primary); padding: 6px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+    
+    .medico-info { background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 0.9em; }
+    .empty-state { text-align: center; padding: 60px; background: white; border-radius: 12px; border: 2px dashed #cbd5e1; }
+    
+    .btn-download { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 15px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; padding: 20px; }
+      .exame-body { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Exames do Paciente {{ paciente_id|default:"?" }}</h1>
-    <div class="controls">
-      <div class="small">Paciente: <strong>{{ paciente_id|default:"?" }}</strong></div>
-      <div>
-        Mostrar
-        <select id="pageSizeSelect">
-          <option value="5">5</option>
-          <option value="10" selected>10</option>
-          <option value="20">20</option>
-        </select>
-        por página
+
+  <div class="sidebar">
+    <h2 style="color: #38bdf8;"><i class="fas fa-heartbeat"></i> Portal Saúde</h2>
+    <nav style="margin-top: 40px;">
+      <div style="padding: 15px; background: #334155; border-radius: 8px; cursor: pointer;">
+        <i class="fas fa-file-medical"></i> Meus Exames
+      </div>
+    </nav>
+  </div>
+
+  <div class="main-content">
+    <div class="header-dashboard">
+      <h1>Olá! Veja seu histórico de exames</h1>
+      <select id="pageSizeSelect" style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+        <option value="5">Mostrar 5 por vez</option>
+        <option value="10" selected>Mostrar 10 por vez</option>
+      </select>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>Total de Exames</h3>
+        <p id="totalExames">0</p>
+      </div>
+      <div class="stat-card" style="border-left-color: #10b981;">
+        <h3>Última Atualização</h3>
+        <p style="font-size: 1.1em;" id="ultimaData">--/--/--</p>
       </div>
     </div>
 
-    <div id="loading">Carregando exames...</div>
-    
-    <div id="exames">
-      {% if exames %}
-        {% for exame in exames %}
-          <div class="exame">
-            <div><strong>{{ exame.tipo|default:"Exame" }}</strong></div>
-            <div class="meta">{{ exame.data }}</div>
-            <div>
-              {% if exame.disponibilidade %}
-                  <div><strong>Resultado Médico:</strong> {{ exame.resultado_medico }}</div>
-                  <div class="ia-result"><strong>Análise IA:</strong> {{ exame.resultado_ia }}</div>
-                  <div><strong>Assinatura:</strong> {{ exame.assinatura }}</div>
-              {% else %}
-                  <div class="status-pending">Aguardando liberação do médico.</div>
-              {% endif %}
-              
-              <div style="margin-top:8px; border-top:1px solid #eee; padding-top:5px;">
-                  <strong>Médico Responsável:</strong> {{ exame.medico.nome }}
-                  {% if exame.medico.CRM %} (CRM: {{ exame.medico.CRM }}){% endif %}
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-      {% endif %}
-    </div>
+    <div id="loading" class="empty-state"><i class="fas fa-spinner fa-spin"></i> Carregando seu prontuário digital...</div>
+    <div id="exames-list"></div>
 
-    <div class="pager" id="pager" style="display:none">
-      <button class="btn" id="prevBtn">Anterior</button>
-      <div class="pages" id="pages"></div>
-      <button class="btn" id="nextBtn">Próximo</button>
+    <div style="display:none; justify-content: center; gap: 20px; margin-top: 30px;" id="pager">
+      <button class="btn-download" id="prevBtn" style="width: auto; background: #64748b;">Anterior</button>
+      <span id="pageIndicator" style="align-self: center; font-weight: 600;"></span>
+      <button class="btn-download" id="nextBtn" style="width: auto;">Próximo</button>
     </div>
   </div>
 
   <script>
-  (function(){
-    const pacienteId = parseInt("{{ paciente_id|default:0 }}", 10);
-    const apiUrl = `/pacientes/${pacienteId}/exames/`; // Ajuste conforme sua rota correta
+    (function(){
+    const pacienteId = "{{ paciente_id|default:'' }}";
+    const apiUrl = `/core/pacientes/${pacienteId}/exames/`;
     
-    function renderField(key, value){
-      return `<div><strong>${key}:</strong> ${value == null ? '' : String(value)}</div>`;
-    }
-
-    // client-side pagination
     let allExames = [];
     let currentPage = 1;
-    let pageSize = parseInt(document.getElementById('pageSizeSelect').value, 10) || 10;
+    let pageSize = 10;
 
     function renderPage(){
-      const container = document.getElementById('exames');
-      container.innerHTML = '';
-      if(!allExames || allExames.length === 0){
-        container.innerHTML = '<div class="empty">Nenhum exame encontrado.</div>';
-        document.getElementById('pager').style.display = 'none';
-        return;
-      }
-
-      const total = allExames.length;
-      const totalPages = Math.max(1, Math.ceil(total / pageSize));
-      if(currentPage > totalPages) currentPage = totalPages;
-
-      const start = (currentPage - 1) * pageSize;
-      const pageItems = allExames.slice(start, start + pageSize);
-
-      pageItems.forEach(exame => {
-        const el = document.createElement('div');
-        el.className = 'exame';
-        const titulo = exame.tipo || (`Exame #${exame.id || ''}`);
-        const meta = exame.data || ''; // Formate a data se necessário
+        const container = document.getElementById('exames-list');
+        const loading = document.getElementById('loading');
         
-        let htmlContent = `<div><strong>${titulo}</strong></div><div class="meta">${meta}</div>`;
-        htmlContent += '<div>';
-
-        // Lógica de Disponibilidade (Client-Side)
-        if (exame.disponibilidade) {
-            const resMedico = exame.resultado_medico || '---';
-            const resIA = exame.resultado_ia || '---';
-            const assinatura = exame.assinatura || '---';
-            
-            htmlContent += `<div><strong>Resultado Médico:</strong> ${resMedico}</div>`;
-            htmlContent += `<div class="ia-result"><strong>Análise IA:</strong> ${resIA}</div>`;
-            htmlContent += `<div><strong>Assinatura:</strong> ${assinatura}</div>`;
-        } else {
-            htmlContent += `<div class="status-pending">Aguardando liberação do médico.</div>`;
+        // Remove o indicador de carregamento
+        if(loading) loading.style.display = 'none';
+        container.innerHTML = '';
+        
+        // Se a lista estiver vazia ou ocorrer erro, mostra apenas a mensagem personalizada
+        if(!allExames || allExames.length === 0){
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-clipboard-list fa-3x" style="color: #cbd5e1; margin-bottom: 15px;"></i>
+                    <p style="color: #64748b; font-size: 1.1em; font-weight: 500;">Nenhum exame disponível</p>
+                </div>`;
+            return;
         }
 
-        // Informações do Médico
-        const medicoNome = exame.medico ? (exame.medico.nome || '') : 'Desconhecido';
-        const medicoCrm = (exame.medico && exame.medico.crm) ? `(CRM: ${exame.medico.crm})` : ''; // Verifique se o serializer retorna 'crm' ou 'CRM'
+        const start = (currentPage - 1) * pageSize;
+        const pageItems = allExames.slice(start, start + pageSize);
+
+        pageItems.forEach(exame => {
+            const div = document.createElement('div');
+            div.className = 'exame-card';
+            div.innerHTML = `
+                <div class="exame-header">
+                    <span class="protocolo"><i class="fas fa-hashtag"></i> Protocolo: ${exame.id}</span>
+                    <span class="data"><i class="far fa-calendar-alt"></i> ${new Date(exame.data_criacao).toLocaleDateString('pt-BR')}</span>
+                </div>
+                <div class="exame-body">
+                    <div>
+                        <div class="resultado-principal">${exame.resultado_medico || 'Análise em andamento'}</div>
+                        <div class="ia-badge"><i class="fas fa-robot"></i> Análise IA: ${exame.resultado_ia || '---'}</div>
+                        <p style="color: #475569; margin-top: 15px; font-size: 0.95em;">${exame.descricao || ''}</p>
+                    </div>
+                    <div class="medico-info">
+                        <div><strong>Responsável:</strong></div>
+                        <div>${exame.medico?.nome || 'Não identificado'}</div>
+                        <div style="color: #64748b; font-size: 0.85em;">CRM: ${exame.medico?.crm || '---'}</div>
+                        <button class="btn-download"><i class="fas fa-download"></i> PDF</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+
+        updateStats();
+        updatePager();
+    }
+
+    function updateStats() {
+        document.getElementById('totalExames').textContent = allExames.length;
+        const dataElement = document.getElementById('ultimaData');
         
-        htmlContent += `<div style="margin-top:8px; border-top:1px solid #eee; padding-top:5px;"><strong>Médico Responsável:</strong> ${medicoNome} ${medicoCrm}</div>`;
-        htmlContent += '</div>'; // fecha div interna
-
-        el.innerHTML = htmlContent;
-        container.appendChild(el);
-      });
-
-      // pager logic
-      const pager = document.getElementById('pager');
-      const pagesEl = document.getElementById('pages');
-      pagesEl.innerHTML = '';
-      for(let i=1;i<=totalPages;i++){
-        const b = document.createElement('button');
-        b.className = 'page-btn' + (i===currentPage ? ' active' : '');
-        b.textContent = i;
-        b.addEventListener('click',()=>{ currentPage = i; renderPage(); });
-        pagesEl.appendChild(b);
-      }
-
-      document.getElementById('prevBtn').disabled = currentPage <= 1;
-      document.getElementById('nextBtn').disabled = currentPage >= totalPages;
-      pager.style.display = totalPages > 1 ? 'flex' : 'none';
+        if(allExames.length > 0) {
+            const datas = allExames.map(e => new Date(e.data_criacao).getTime());
+            const maisRecente = new Date(Math.max(...datas));
+            dataElement.textContent = maisRecente.toLocaleDateString('pt-BR');
+        } else {
+            dataElement.textContent = "--/--/--";
+        }
     }
 
-    function setupControls(){
-      document.getElementById('prevBtn').addEventListener('click',()=>{ if(currentPage>1){ currentPage--; renderPage(); } });
-      document.getElementById('nextBtn').addEventListener('click',()=>{ const totalPages = Math.max(1, Math.ceil(allExames.length / pageSize)); if(currentPage<totalPages){ currentPage++; renderPage(); } });
-      document.getElementById('pageSizeSelect').addEventListener('change',(e)=>{ pageSize = parseInt(e.target.value,10)||10; currentPage = 1; renderPage(); });
+    function updatePager(){
+        const totalPages = Math.ceil(allExames.length / pageSize);
+        const pager = document.getElementById('pager');
+        pager.style.display = totalPages > 1 ? 'flex' : 'none';
+        if(totalPages > 1) {
+            document.getElementById('pageIndicator').textContent = `${currentPage} / ${totalPages}`;
+        }
     }
 
-    // Busca dados via API (caso a página use renderização híbrida)
-    fetch(apiUrl)
-      .then(res => { if(!res.ok) throw new Error(res.status + ' ' + res.statusText); return res.json(); })
-      .then(data => {
-        const loading = document.getElementById('loading');
-        loading && loading.remove();
-        // A API pode retornar paginada ou lista direta. Ajuste conforme seu ViewSet.
-        // Se for DRF padrão pagination: data.results. Se for list: data.
-        allExames = Array.isArray(data) ? data : (data.results ? data.results : [data]);
-        setupControls();
+    // Fluxo de execução
+    if (pacienteId) {
+        fetch(apiUrl)
+            .then(res => res.ok ? res.json() : []) // Se erro no servidor, retorna lista vazia
+            .then(data => {
+                allExames = Array.isArray(data) ? data : (data.results || []);
+                renderPage();
+            })
+            .catch(() => {
+                allExames = []; // Em caso de erro de rede, limpa a lista
+                renderPage();   // Renderiza o estado "Nenhum exame disponível"
+            });
+    } else {
         renderPage();
-      })
-      .catch(err => {
-        const loading = document.getElementById('loading');
-        if(loading) loading.textContent = 'Erro ao carregar exames: ' + err.message;
-        console.error(err);
-      });
-  })();
-  </script>
+    }
+
+})();
+</script>
 </body>
 </html>

@@ -18,38 +18,31 @@ class PacienteSerializer(UsuarioSerializer):
 
 
 class ImagemSerializer(serializers.ModelSerializer):
-    
+    # Usamos FileField ou ImageField para que o DRF gere a URL completa da imagem
+    path = serializers.ImageField(required=True)
+
     class Meta:
         model = Imagem
         fields = ['id', 'path', 'exame']
 
 
-class ExameSerializer(serializers.ModelSerializer):
-    # Leitura (Aninhados)
-    medico = MedicoSerializer(read_only=True)
-    paciente_detail = PacienteSerializer(source='paciente', read_only=True)
-    imagens = ImagemSerializer(many=True, read_only=True)
+# ProjetoDefCoders/sistema/core/serializers.py
 
-    # Escrita (IDs)
-    paciente = serializers.PrimaryKeyRelatedField(queryset=Paciente.objects.all())
-    
-    # Upload de Imagens (Write Only - Apenas para receber os arquivos)
-    imagens_upload = serializers.ListField(
-        child=serializers.ImageField(),
-        write_only=True,
-        required=False
-    )
+class ExameSerializer(serializers.ModelSerializer):
+    imagens = ImagemSerializer(many=True, read_only=True)
+    medico_nome = serializers.ReadOnlyField(source='medico.nome')
+    paciente_nome = serializers.ReadOnlyField(source='paciente.nome') # Adicionado
 
     class Meta:
         model = Exame
         fields = [
-            'id', 'medico', 'paciente', 'paciente_detail', 'data_criacao', 'resultado_ia', 
-            'resultado_medico', 'assinatura', 'disponibilidade', 'imagens', 
-            'imagens_upload'
+            'id', 
+            'paciente',      # ID para criação
+            'paciente_nome', # Nome para exibição
+            'descricao', 
+            'data_criacao', 
+            'resultado_ia', 
+            'resultado_medico', 
+            'imagens', 
+            'medico_nome'
         ]
-        extra_kwargs = {
-            'resultado_medico': {'required': False},
-            'resultado_ia': {'required': False},
-            'assinatura': {'required': False},
-            'disponibilidade': {'required': False},
-        }

@@ -54,17 +54,18 @@ class Medico(Usuario):
   
 
 class Exame(models.Model):
-  medico = models.ForeignKey(Medico, on_delete=models.CASCADE)
-  paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
-  data_criacao = models.DateTimeField(auto_now_add=True)
-  data_alteracao = models.DateTimeField(auto_now=True)
-  resultado_ia = models.CharField(choices=RESULTADOS, max_length=20)
-  resultado_medico = models.CharField(choices=RESULTADOS, max_length=20)
-  assinatura = models.CharField(max_length=100)
-  disponibilidade = models.BooleanField(default=False)
+    medico = models.ForeignKey(Medico, on_delete=models.CASCADE)
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    data_alteracao = models.DateTimeField(auto_now=True)
+    descricao = models.TextField(max_length=2000)
+    resultado_ia = models.CharField(choices=RESULTADOS, max_length=20)
+    resultado_medico = models.CharField(choices=RESULTADOS, max_length=20)
+    assinatura = models.CharField(max_length=100)
+    disponibilidade = models.BooleanField(default=False)
 
-  def __str__(self):
-      return f"Exame de {self.paciente.nome} ({self.data_criacao})"
+    def __str__(self):
+        return f"Exame de {self.paciente.nome} ({self.data_criacao})"
   
 
 class Imagem(models.Model):

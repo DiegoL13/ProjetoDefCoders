@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Painel Médico - Gestão de Exames</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; --card: #ffffff; }
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+    .sidebar { width: 260px; background: #1e293b; color: white; height: 100vh; position: fixed; padding: 20px; }
+    .main-content { margin-left: 260px; padding: 40px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    
+    .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+    
+    .exame-card { background: var(--card); border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .info-paciente h4 { margin: 0; color: var(--primary); }
+    .info-paciente p { margin: 5px 0; font-size: 0.9em; color: #64748b; }
+    
+    .actions { display: flex; gap: 10px; }
+    .btn-edit { background: #f1f5f9; color: #475569; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; }
+    .empty-state { text-align: center; padding: 60px; background: white; border-radius: 12px; border: 2px dashed #cbd5e1; }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2><i class="fas fa-user-md"></i> Área Médica</h2>
+    <nav style="margin-top: 40px;">
+      <div style="padding: 15px; background: #334155; border-radius: 8px;"><i class="fas fa-list"></i> Gerenciar Exames</div>
+    </nav>
+  </div>
+
+  <div class="main-content">
+    <div class="header">
+      <h1>Meus Exames Realizados</h1>
+      <a href="{% url 'criar-exame' medico_id %}" class="btn-primary">Criar Novo Exame</a>
+    </div>
+
+    <div id="exames-medico-list">
+      <div id="loading" class="empty-state">Carregando exames...</div>
+    </div>
+  </div>
+
+  <script>
+    // Lógica para buscar exames do médico logado
+    const medicoId = "{{ medico_id }}"; 
+    const apiUrl = `/core/medicos/${medicoId}/exames/`;
+
+    fetch(apiUrl)
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById('exames-medico-list');
+        container.innerHTML = '';
+        const exames = Array.isArray(data) ? data : (data.results || []);
+
+        if(exames.length === 0) {
+          container.innerHTML = '<div class="empty-state"><p>Nenhum exame disponível</p></div>';
+          return;
+        }
+
+        exames.forEach(exame => {
+          container.innerHTML += `
+            <div class="exame-card">
+              <div class="info-paciente">
+                <h4><i class="fas fa-user"></i> ${exame.paciente_nome}</h4>
+                <p>Data: ${new Date(exame.data_criacao).toLocaleDateString('pt-BR')} | Protocolo: #${exame.id}</p>
+              </div>
+              <div class="actions">
+                <button class="btn-edit" onclick="editarExame(${exame.id})"><i class="fas fa-edit"></i> Alterar</button>
+              </div>
+            </div>
+          `;
+        });
+      })
+      .catch(() => {
+        document.getElementById('exames-medico-list').innerHTML = '<div class="empty-state"><p>Nenhum exame disponível</p></div>';
+      });
+
+    function editarExame(id) {
+        alert("Redirecionar para tela de edição do exame: " + id);
+        // window.location.href = `/editar-exame/${id}`;
+    }
+  </script>
+</body>
+</html>

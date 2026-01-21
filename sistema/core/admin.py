@@ -9,7 +9,7 @@ class MedicoAdmin(admin.ModelAdmin):
 
 @admin.register(Exame)
 class ExameAdmin(admin.ModelAdmin):
-  list_display = ['assinatura', 'data_criacao', 'resultado_medico', 'resultado_ia', 'disponibilidade']
+  list_display = ['descricao','assinatura', 'data_criacao', 'resultado_medico', 'resultado_ia', 'disponibilidade']
 
 @admin.register(Imagem)
 class ImagemAdmin(admin.ModelAdmin):
