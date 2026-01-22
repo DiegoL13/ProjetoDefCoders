@@ -47,9 +47,9 @@ LOGIN_REDIRECT_URL = '/' # Ou a rota que você preferir
 LOGOUT_REDIRECT_URL = '/login/'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTENTICATION_CLASSES':(
-        #'rest_framework.autentication.SessionAutentication',
-        'rest_framework.autentication.TokenAutentication',
+    'DEFAULT_AUTHENTICATION_CLASSES':(
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
 
     ),
 }

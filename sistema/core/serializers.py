@@ -37,12 +37,15 @@ class ExameSerializer(serializers.ModelSerializer):
         model = Exame
         fields = [
             'id', 
-            'paciente',      # ID para criação
-            'paciente_nome', # Nome para exibição
+            'medico',         # Adicionado pois é obrigatório no modelo
+            'medico_nome', 
+            'paciente', 
+            'paciente_nome', 
             'descricao', 
             'data_criacao', 
             'resultado_ia', 
             'resultado_medico', 
+            'assinatura',     # Adicionado pois é obrigatório no modelo
+            'disponibilidade',
             'imagens', 
-            'medico_nome'
         ]

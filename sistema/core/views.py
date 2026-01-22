@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from rest_framework import viewsets
 from django.views import View
-from .models import Usuario, Paciente, Medico, Exame, Imagem
+from .models import *
 from .serializers import *
 from django.contrib.auth import login
 from .forms import PacienteCreationForm, MedicoCreationForm, LoginForm
@@ -9,6 +9,8 @@ from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
 import random
 from .choices import *
+from django.http import JsonResponse
+from rest_framework import status, permissions
 
 # Suas views abaixo...
 # Create your views here.
@@ -41,11 +43,28 @@ class MedicoDashboardView(View):
             'medico': medico
         }
         return render(request, 'core/medico_dashboard.html', context)
+    
+class MedicoExamesViewSet(viewsets.ModelViewSet):
+    serializer_class = ExameSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Filtra exames apenas do médico logado
+        medico_id = self.kwargs.get('medico_id')
+        return Exame.objects.filter(medico_id=medico_id).order_by('-data_criacao')
+
+    def perform_update(self, serializer):
+        # Garante que campos automáticos não sejam alterados manualmente no update
+        serializer.save(medico=self.request.user.medico)
 
 class CriarExameView(View):
     def get(self, request, medico_id):
-        # Apenas renderiza o formulário
-        return render(request, 'core/criar_exame.html', {'medico_id': medico_id})
+        # Busca todos os pacientes para preencher o select
+        pacientes = Paciente.objects.all() 
+        return render(request, 'core/criar_exame.html', {
+            'medico_id': medico_id,
+            'pacientes': pacientes  # Adiciona a lista ao contexto
+        })
 
     def post(self, request, medico_id):
         medico = get_object_or_404(Medico, id=medico_id)
@@ -57,21 +76,55 @@ class CriarExameView(View):
         # Lógica automática para simular a IA e assinatura
         resultados_opcoes = ['BENIGNO', 'MALIGNO', 'SAUDÁVEL']
         
-        exame = Exame.objects.create(
-            medico=medico,
-            paciente_id=paciente_id,
-            descricao=descricao,
-            resultado_ia=random.choice(resultados_opcoes),
-            assinatura=medico.nome,
-            resultado_medico='SAUDÁVEL' # Valor padrão inicial
-        )
+        if not paciente_id:
+            # Retorna um erro caso o paciente não tenha sido selecionado
+            return JsonResponse({'error': 'Paciente é obrigatório'}, status=400)
+        
+        try:
+            exame = Exame.objects.create(
+                medico=medico,
+                paciente_id=paciente_id,
+                descricao=descricao,
+                resultado_ia=random.choice(resultados_opcoes),
+                assinatura=medico.nome,
+                resultado_medico='SAUDÁVEL', # Valor padrão inicial
+                disponibilidade = False
+            )
 
-        # Salva as múltiplas imagens enviadas
-        imagens_enviadas = request.FILES.getlist('imagens')
-        for img in imagens_enviadas:
-            Imagem.objects.create(exame=exame, path=img)
+            # Salva as múltiplas imagens enviadas
+            imagens_enviadas = request.FILES.getlist('imagens')
+            for img in imagens_enviadas:
+                Imagem.objects.create(exame=exame, path=img)
 
-        return redirect('medico-dashboard', medico_id=medico_id)
+            return JsonResponse({'success': True}) # Retorna sucesso para o JavaScript
+        
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+        
+class EditarExameView(View):
+    def post(self, request, exame_id):
+        exame = get_object_or_404(Exame, id=exame_id)
+        
+        # 1. Verifica se o usuário tem perfil de médico
+        if not hasattr(request.user, 'medico'):
+            return JsonResponse({'success': False, 'error': 'Usuário não é um médico cadastrado.'}, status=403)
+        
+        # 2. Verifica se o médico logado é o responsável por este exame
+        if exame.medico != request.user.medico:
+            return JsonResponse({'success': False, 'error': 'Acesso negado: Você não é o médico deste exame.'}, status=403)
+
+        # 3. Captura os dados enviados pelo JavaScript (FormData)
+        resultado_medico = request.POST.get('resultado_medico')
+        disponibilidade = request.POST.get('disponibilidade') == 'true'
+
+        try:
+            exame.resultado_medico = resultado_medico
+            exame.disponibilidade = disponibilidade
+            exame.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    
 
 class ExameViewSet(viewsets.ModelViewSet):
     queryset = Exame.objects.all()
@@ -207,6 +260,3 @@ class CustomLoginView(LoginView):
         # Caso de segurança (teoricamente inalcançável devido ao filtro acima)
         return '/'
     
-
-
-

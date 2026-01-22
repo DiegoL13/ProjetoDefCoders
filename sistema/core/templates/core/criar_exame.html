@@ -20,23 +20,27 @@
 <body>
 
   <div class="container">
-    <a href="medico_dashboard.html" class="btn-back">
-
-      <a href="{% url 'medico-dashboard' medico_id %}" class="btn-back">
-          <i class="fas fa-arrow-left"></i> Voltar ao Painel
-      </a>
+    <a href="{% url 'medico-dashboard' medico_id %}" class="btn-back">
+      <i class="fas fa-arrow-left"></i> Voltar ao Painel
+    </a>
     <h2><i class="fas fa-file-medical"></i> Cadastrar Novo Exame</h2>
     <hr style="border: 0; border-top: 1px solid #f1f5f9; margin-bottom: 25px;">
 
-    <form id="formExame" enctype="multipart/form-data">
+    <form id="formExame" enctype="multipart/form-data" method="POST">
+      {% csrf_token %}
       <div class="form-group">
-        <label>Nome do Paciente</label>
-        <input type="text" id="paciente_nome" placeholder="Digite o nome completo" required>
+        <label>Selecionar Paciente</label>
+        <select id="paciente" name="paciente" required style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px;">
+          <option value="">-- Escolha um paciente --</option>
+          {% for paciente in pacientes %}
+            <option value="{{ paciente.id }}">{{ paciente.nome }}</option>
+          {% endfor %}
+        </select>
       </div>
 
       <div class="form-group">
         <label>Descrição do Exame</label>
-        <textarea id="descricao" placeholder="Detalhes técnicos e observações..."></textarea>
+        <textarea id="descricao" name="descricao" placeholder="Detalhes técnicos..."></textarea>
       </div>
 
       <div class="form-group">
@@ -51,22 +55,33 @@
 
   <script>
     document.getElementById('formExame').addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      // Simulação de envio
-      const formData = new FormData();
-      formData.append('paciente', document.getElementById('paciente_nome').value);
-      formData.append('descricao', document.getElementById('descricao').value);
-      
-      const files = document.getElementById('imagens').files;
-      for (let i = 0; i < files.length; i++) {
-        formData.append('imagens', files[i]);
-      }
+    e.preventDefault();
+    
+    const formData = new FormData(this); // Captura automaticamente todos os campos e o CSRF token
+    
+    // URL da sua CriarExameView
+    const url = "{% url 'criar-exame' medico_id %}";
 
-      console.log("Enviando dados...");
-      alert("Exame criado com sucesso! (Integre com sua View do Django aqui)");
-      window.location.href = "medico_dashboard.html";
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}' // Envia o token de segurança no cabeçalho
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            alert("Exame criado com sucesso!");
+            window.location.href = "{% url 'medico-dashboard' medico_id %}";
+        } else {
+            alert("Erro ao salvar o exame. Verifique os dados.");
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert("Falha na comunicação com o servidor.");
     });
+  });
   </script>
 </body>
 </html>
