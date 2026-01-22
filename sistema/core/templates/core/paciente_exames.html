@@ -18,13 +18,11 @@
     .main-content { margin-left: 260px; padding: 40px; }
     .header-dashboard { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
     
-    /* Grid de estatísticas rápidas */
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
     .stat-card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid var(--primary); }
     .stat-card h3 { margin: 0; font-size: 0.9em; color: var(--text-muted); text-transform: uppercase; }
     .stat-card p { margin: 5px 0 0; font-size: 1.8em; font-weight: bold; }
 
-    /* Estilização da lista de exames como cards intuitivos */
     .exame-card { background: var(--card-bg); border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: transform 0.2s; border: 1px solid #e2e8f0; }
     .exame-card:hover { transform: translateY(-2px); }
     .exame-header { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 15px; }
@@ -33,7 +31,6 @@
     
     .exame-body { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
     .resultado-principal { font-size: 1.2em; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
-    .ia-badge { background: #eff6ff; color: var(--primary); padding: 6px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
     
     .medico-info { background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 0.9em; }
     .empty-state { text-align: center; padding: 60px; background: white; border-radius: 12px; border: 2px dashed #cbd5e1; }
@@ -101,11 +98,9 @@
         const container = document.getElementById('exames-list');
         const loading = document.getElementById('loading');
         
-        // Remove o indicador de carregamento
         if(loading) loading.style.display = 'none';
         container.innerHTML = '';
         
-        // Se a lista estiver vazia ou ocorrer erro, mostra apenas a mensagem personalizada
         if(!allExames || allExames.length === 0){
             container.innerHTML = `
                 <div class="empty-state">
@@ -129,13 +124,11 @@
                 <div class="exame-body">
                     <div>
                         <div class="resultado-principal">${exame.resultado_medico || 'Análise em andamento'}</div>
-                        <div class="ia-badge"><i class="fas fa-robot"></i> Análise IA: ${exame.resultado_ia || '---'}</div>
                         <p style="color: #475569; margin-top: 15px; font-size: 0.95em;">${exame.descricao || ''}</p>
                     </div>
                     <div class="medico-info">
                         <div><strong>Responsável:</strong></div>
-                        <div>${exame.medico?.nome || 'Não identificado'}</div>
-                        <div style="color: #64748b; font-size: 0.85em;">CRM: ${exame.medico?.crm || '---'}</div>
+                        <div>${exame.medico_nome || 'Não identificado'}</div>
                         <button class="btn-download"><i class="fas fa-download"></i> PDF</button>
                     </div>
                 </div>
@@ -145,7 +138,7 @@
 
         updateStats();
         updatePager();
-    }
+    } // Fim da renderPage
 
     function updateStats() {
         document.getElementById('totalExames').textContent = allExames.length;
@@ -169,18 +162,44 @@
         }
     }
 
+    // Eventos de Paginação
+    document.getElementById('pageSizeSelect').addEventListener('change', (e) => {
+        pageSize = parseInt(e.target.value);
+        currentPage = 1;
+        renderPage();
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+        if(currentPage > 1) {
+            currentPage--;
+            renderPage();
+        }
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+        const totalPages = Math.ceil(allExames.length / pageSize);
+        if(currentPage < totalPages) {
+            currentPage++;
+            renderPage();
+        }
+    });
+
     // Fluxo de execução
     if (pacienteId) {
-        fetch(apiUrl)
-            .then(res => res.ok ? res.json() : []) // Se erro no servidor, retorna lista vazia
-            .then(data => {
-                allExames = Array.isArray(data) ? data : (data.results || []);
-                renderPage();
-            })
-            .catch(() => {
-                allExames = []; // Em caso de erro de rede, limpa a lista
-                renderPage();   // Renderiza o estado "Nenhum exame disponível"
-            });
+        fetch(apiUrl, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+            allExames = Array.isArray(data) ? data : (data.results || []);
+            renderPage();
+        })
+        .catch(() => {
+            allExames = [];
+            renderPage();
+        });
     } else {
         renderPage();
     }

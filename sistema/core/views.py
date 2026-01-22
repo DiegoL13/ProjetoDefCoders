@@ -10,7 +10,8 @@ from django.urls import reverse_lazy
 import random
 from .choices import *
 from django.http import JsonResponse
-from rest_framework import status, permissions
+from rest_framework.response import Response
+from rest_framework import permissions
 
 # Suas views abaixo...
 # Create your views here.
@@ -165,42 +166,44 @@ class ImagemViewSet(viewsets.ModelViewSet):
     serializer_class = ImagemSerializer
 
 
+# ProjetoDefCoders/sistema/core/views.py
+
 class PacienteExameViewSet(viewsets.ModelViewSet):
     queryset = Exame.objects.all()
-    serializer_class = ExameSerializer
+    serializer_class = ExamePacienteSerializer
 
     def get_queryset(self):
-        # 1. Recupera o ID do paciente da URL
-        paciente_id = self.kwargs.get('paciente_id')
-        
-        # 2. Verifica se o usuário logado é o próprio paciente (Segurança)
-        # Isso impede que o Paciente A acesse a URL do Paciente B
+        # 1. Recupera o ID do perfil de paciente vindo da URL
+        paciente_id_url = self.kwargs.get('paciente_id')
         user = self.request.user
-        if not hasattr(user, 'paciente') or user.paciente.id != int(paciente_id):
+        
+        # 2. Verifica se o utilizador tem um perfil de paciente
+        if not hasattr(user, 'paciente'):
             return Exame.objects.none()
 
-        # 3. Filtra apenas exames do próprio paciente E que estejam disponíveis
+        # 3. Segurança: Garante que o ID da URL corresponde ao do utilizador logado
+        if user.paciente.id != int(paciente_id_url):
+            return Exame.objects.none()
+
+        # 4. Filtra apenas exames do próprio paciente e já libertados pelo médico
         return Exame.objects.filter(
-            paciente_id=paciente_id, 
+            paciente=user.paciente, 
             disponibilidade=True
-        )
+        ).order_by('-data_criacao')
 
     def list(self, request, *args, **kwargs):
-        # O restante do código permanece igual, 
-        # ele usará o queryset filtrado acima automaticamente
         queryset = self.filter_queryset(self.get_queryset())
 
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            exames_data = serializer.data
-        else:
+        # Se a requisição for do JavaScript (espera JSON), devolve os dados serializados
+        if request.accepted_renderer.format == 'json':
             serializer = self.get_serializer(queryset, many=True)
-            exames_data = serializer.data
+            return Response(serializer.data)
 
+        # Se for acesso direto pelo navegador, renderiza o template HTML
+        serializer = self.get_serializer(queryset, many=True)
         context = {
-            'paciente_id': kwargs.get('paciente_id'),
-            'exames': exames_data,
+            'paciente_id': self.kwargs.get('paciente_id'),
+            'exames': serializer.data,
         }
         return render(request, 'core/paciente_exames.html', context)
     

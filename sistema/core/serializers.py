@@ -18,15 +18,12 @@ class PacienteSerializer(UsuarioSerializer):
 
 
 class ImagemSerializer(serializers.ModelSerializer):
-    # Usamos FileField ou ImageField para que o DRF gere a URL completa da imagem
     path = serializers.ImageField(required=True)
 
     class Meta:
         model = Imagem
         fields = ['id', 'path', 'exame']
 
-
-# ProjetoDefCoders/sistema/core/serializers.py
 
 class ExameSerializer(serializers.ModelSerializer):
     imagens = ImagemSerializer(many=True, read_only=True)
@@ -36,16 +33,16 @@ class ExameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Exame
         fields = [
-            'id', 
-            'medico',         # Adicionado pois é obrigatório no modelo
-            'medico_nome', 
-            'paciente', 
-            'paciente_nome', 
-            'descricao', 
-            'data_criacao', 
-            'resultado_ia', 
-            'resultado_medico', 
-            'assinatura',     # Adicionado pois é obrigatório no modelo
-            'disponibilidade',
-            'imagens', 
+            'id', 'medico', 'medico_nome', 'paciente', 'paciente_nome', 'descricao', 'data_criacao', 
+            'resultado_ia', 'resultado_medico', 'assinatura','disponibilidade','imagens', 
+        ]
+
+class ExamePacienteSerializer(serializers.ModelSerializer):
+    medico_nome = serializers.ReadOnlyField(source='medico.nome')
+    imagens = ImagemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Exame
+        fields = [
+            'id', 'medico_nome', 'descricao', 'data_criacao', 'resultado_medico', 'disponibilidade','imagens', 
         ]
