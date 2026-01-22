@@ -26,7 +26,6 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     contato = models.CharField(max_length=45, blank=True, null=True)
     email = models.EmailField(unique=True)
     
-    # IMPORTANTE: Adicione o Manager aqui
     objects = UsuarioManager()
 
     # Configurações de Autenticação
@@ -43,39 +42,35 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 class Paciente(Usuario):
     historico_medico = models.TextField(blank=True, null=True)
 
+    def __str__(self):
+        return f"Nome: {self.nome}"
+
 class Medico(Usuario):
   crm = models.CharField(max_length=20, unique=True)
   especialidade = models.CharField(max_length=30)
 
   def __str__(self):
-    return "{self.nome} - {self.crm}"
+    return f"Nome: {self.nome} - CRM: {self.crm}"
   
 
 class Exame(models.Model):
-  medico = models.ForeignKey(Medico, on_delete=models.CASCADE)
-  paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE) # Campo adicionado
-  assinatura = models.CharField(max_length=100)
-  data = models.DateTimeField()
-  
-  tipo_escolha = (
-      ('ANALISADO POR IA', 'Analisado por IA'),
-      ('REVISADO POR HUMANO', 'Revisado por Humano')
-  )
-  tipo = models.CharField(choices=tipo_escolha, max_length=30)
-  
-  resultados = (
-      ('BENIGNO','Benigno'),
-      ('MALIGNO', 'Maligno'),
-      ('SAUDÁVEL', 'Saudável')
-  )
-  resultado = models.CharField(choices=resultados, max_length=20)
+    medico = models.ForeignKey(Medico, on_delete=models.CASCADE)
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    data_alteracao = models.DateTimeField(auto_now=True)
+    descricao = models.TextField(max_length=2000)
+    resultado_ia = models.CharField(choices=RESULTADOS, max_length=20)
+    resultado_medico = models.CharField(choices=RESULTADOS, max_length=20)
+    assinatura = models.CharField(max_length=100)
+    disponibilidade = models.BooleanField(default=False)
 
-  def __str__(self):
-      return f"Exame de {self.paciente.nome} ({self.data})"
+    def __str__(self):
+        return f"Exame de {self.paciente.nome} ({self.data_criacao})"
+  
 
 class Imagem(models.Model):
     exame = models.ForeignKey(Exame, on_delete=models.CASCADE, related_name='imagens')
-    path = models.ImageField(upload_to='imagens_exames/') # Caminho de upload definido
+    path = models.ImageField(upload_to='imagens_exames/')
 
     def __str__(self):
         return f"Imagem do Exame {self.exame.id}"

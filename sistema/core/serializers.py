@@ -16,16 +16,33 @@ class PacienteSerializer(UsuarioSerializer):
         model = Paciente
         fields = UsuarioSerializer.Meta.fields + ['historico_medico']
 
-class ExameSerializer(serializers.ModelSerializer):
-   medico = MedicoSerializer(read_only=True)
-   paciente = PacienteSerializer(read_only=True)
-   class Meta:
-      model = Exame
-      fields = ['medico','paciente','assinatura','data','tipo','resultado']
-      
 
 class ImagemSerializer(serializers.ModelSerializer):
-   exame = ExameSerializer(read_only=True)
-   class Meta:
-      model = Imagem
-      fields = ['path','exame']
+    path = serializers.ImageField(required=True)
+
+    class Meta:
+        model = Imagem
+        fields = ['id', 'path', 'exame']
+
+
+class ExameSerializer(serializers.ModelSerializer):
+    imagens = ImagemSerializer(many=True, read_only=True)
+    medico_nome = serializers.ReadOnlyField(source='medico.nome')
+    paciente_nome = serializers.ReadOnlyField(source='paciente.nome') # Adicionado
+
+    class Meta:
+        model = Exame
+        fields = [
+            'id', 'medico', 'medico_nome', 'paciente', 'paciente_nome', 'descricao', 'data_criacao', 
+            'resultado_ia', 'resultado_medico', 'assinatura','disponibilidade','imagens', 
+        ]
+
+class ExamePacienteSerializer(serializers.ModelSerializer):
+    medico_nome = serializers.ReadOnlyField(source='medico.nome')
+    imagens = ImagemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Exame
+        fields = [
+            'id', 'medico_nome', 'descricao', 'data_criacao', 'resultado_medico', 'disponibilidade','imagens', 
+        ]

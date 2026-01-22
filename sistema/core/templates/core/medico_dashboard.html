@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Médico - Def Coders</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            position: fixed;
+        }
+
+        .main-content {
+            margin-left: 290px;
+            padding: 40px;
+            width: calc(100% - 330px);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        /* Tabela/Lista de Exames */
+        .exame-list {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .exame-header {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 120px;
+            background: #ecf0f1;
+            padding: 15px 20px;
+            font-weight: bold;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .exame-row {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 120px;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+            transition: background 0.3s;
+        }
+
+        .exame-row:hover {
+            background-color: #f9f9f9;
+        }
+
+        /* Inputs e Botões */
+        .select-edit {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            width: 100%;
+        }
+
+        .btn-save {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-save:hover { background-color: #2980b9; }
+        .btn-save:disabled { background-color: #bdc3c7; }
+
+        .badge-ia {
+            background: #e1f5fe;
+            color: #0288d1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Def Coders</h2>
+        <p><i class="fas fa-user-md"></i> Dr(a). {{ medico.nome }}</p>
+        <hr>
+        <a href="{% url 'criar-exame' medico_id=medico.id %}" style="color: white; text-decoration: none;">
+            <button style="width: 100%; padding: 10px; cursor: pointer;">+ Novo Exame</button>
+        </a>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>Painel de Exames</h1>
+            <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn-save" style="background: #e74c3c;">Sair</button>
+            </form>
+        </div>
+
+        <div class="exame-list">
+            <div class="exame-header">
+                <div>Paciente / Protocolo</div>
+                <div>Descrição</div>
+                <div>Resultado IA</div>
+                <div>Resultado Médico</div>
+                <div>Status</div>
+                <div>Ação</div>
+            </div>
+
+            <div id="exames-container">
+                <p style="padding: 20px;">Carregando exames...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const medicoId = "{{ medico_id }}";
+        const container = document.getElementById('exames-container');
+
+        // 1. Função para carregar os exames
+        async function carregarExames() {
+            try {
+                const response = await fetch(`/core/medicos/${medicoId}/exames/`);
+                const data = await response.json();
+                
+                container.innerHTML = '';
+
+                if (data.length === 0) {
+                    container.innerHTML = '<p style="padding: 20px;">Nenhum exame encontrado.</p>';
+                    return;
+                }
+
+                data.forEach(exame => {
+                    container.innerHTML += `
+                        <div class="exame-row">
+                            <div>
+                                <strong>${exame.paciente_nome}</strong><br>
+                                <small>#${exame.id}</small>
+                            </div>
+                            <div>${exame.descricao || 'Sem descrição'}</div>
+                            <div><span class="badge-ia">${exame.resultado_ia}</span></div>
+                            <div>
+                                <select class="select-edit" id="res-${exame.id}">
+                                    <option value="BENIGNO" ${exame.resultado_medico === 'BENIGNO' ? 'selected' : ''}>Benigno</option>
+                                    <option value="MALIGNO" ${exame.resultado_medico === 'MALIGNO' ? 'selected' : ''}>Maligno</option>
+                                    <option value="SAUDÁVEL" ${exame.resultado_medico === 'SAUDÁVEL' ? 'selected' : ''}>Saudável</option>
+                                </select>
+                            </div>
+                            <div>
+                                <input type="checkbox" id="dispo-${exame.id}" ${exame.disponibilidade ? 'checked' : ''}>
+                                <label for="dispo-${exame.id}">Disponível</label>
+                            </div>
+                            <div>
+                                <button class="btn-save" onclick="guardarAlteracoes(${exame.id}, this)">
+                                    <i class="fas fa-save"></i> Salvar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                container.innerHTML = '<p style="padding: 20px; color: red;">Erro ao carregar exames.</p>';
+            }
+        }
+
+        // 2. Função para salvar sem pop-ups
+        async function guardarAlteracoes(exameId, btn) {
+            const resultado = document.getElementById(`res-${exameId}`).value;
+            const disponivel = document.getElementById(`dispo-${exameId}`).checked;
+
+            const formData = new FormData();
+            formData.append('resultado_medico', resultado);
+            formData.append('disponibilidade', disponivel);
+
+            // Feedback visual no botão
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`/core/exame/${exameId}/editar/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    btn.style.backgroundColor = '#27ae60';
+                    btn.innerHTML = '<i class="fas fa-check"></i>';
+                    setTimeout(() => {
+                        btn.style.backgroundColor = '';
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    alert("Erro ao salvar: " + result.error);
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            } catch (error) {
+                alert("Erro de conexão.");
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // Inicializa a página
+        carregarExames();
+    </script>
+</body>
+</html>
