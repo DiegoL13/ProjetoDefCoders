@@ -3,7 +3,7 @@ from rest_framework import viewsets
 from django.views import View
 from .models import *
 from .serializers import *
-from django.contrib.auth import login
+from django.contrib.auth import authenticate, login
 from .forms import PacienteCreationForm, MedicoCreationForm, LoginForm
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
@@ -12,9 +12,12 @@ from .choices import *
 from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework import permissions
+from django.shortcuts import redirect
 
-# Suas views abaixo...
-# Create your views here.
+class HomeView(View):
+    def get(self, request):
+        return render(request, 'core/home.html')
+    
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioSerializer

@@ -4,8 +4,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from .models import *
 
 class LoginForm(AuthenticationForm):
-    # Personalizando o form de login para usar classes CSS (opcional)
-    username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Email'}))
+    username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'E-mail'}))
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Senha'}))
 
 class PacienteCreationForm(forms.ModelForm):
