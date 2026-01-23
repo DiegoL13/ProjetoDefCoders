@@ -15,7 +15,9 @@ router.register(r'pacientes/(?P<paciente_id>\d+)/exames', viewset=PacienteExameV
 router.register(r'medicos/(?P<medico_id>\d+)/exames', viewset=MedicoExamesViewSet, basename='medico-exames')
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path('', views.HomeView.as_view(), name='home'), 
+    
+
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
 
@@ -24,8 +26,9 @@ urlpatterns = [
 
     path('exame/<int:exame_id>/editar/', views.EditarExameView.as_view(), name='editar-exame'),
     
-
     path('cadastro/paciente/', views.cadastro_paciente, name='cadastro_paciente'),
     path('cadastro/medico/', views.cadastro_medico, name='cadastro_medico'),
+
+    path('', include(router.urls)),
     
 ]
