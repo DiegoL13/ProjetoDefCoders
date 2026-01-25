@@ -2,6 +2,8 @@ import time
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from .choices import *
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class UsuarioManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -77,8 +79,27 @@ class Imagem(models.Model):
     
 
 class LogExames(models.Model):
-    exame = models.ForeignKey(Exame, on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(auto_now_add=True)
+    exame = models.ForeignKey(Exame, on_delete=models.CASCADE, related_name='logs')
+    nome_evento = models.CharField(max_length=100, choices=EVENTOS_CHOICES)
+    data_evento = models.DateTimeField(auto_now_add=True)
+    medico_id = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
-        return f"Log do Exame {self.exame.id} em {self.timestamp}"
+        return f"{self.nome_evento} - Data {self.data_evento} - Exame {self.exame.id}"
+
+@receiver(post_save, sender=Exame)
+def registrar_logs_automaticos(sender, instance, created, **kwargs):
+    if created:
+        # 1. Registra o evento de Criação
+        LogExames.objects.create(
+            exame=instance, 
+            nome_evento='Criação'
+        )
+        
+        # 2. Registra Revisão por IA se o resultado já existir no momento da criação
+        if instance.resultado_ia:
+            LogExames.objects.create(
+                exame=instance, 
+                nome_evento='Revisão por IA'
+            )
+    

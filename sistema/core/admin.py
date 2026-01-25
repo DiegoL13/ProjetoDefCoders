@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Medico, Exame, Imagem, Paciente
+from .models import Medico, Exame, Imagem, Paciente, LogExames
 
 # Register your models here.
 @admin.register(Medico)
@@ -19,3 +19,12 @@ class ImagemAdmin(admin.ModelAdmin):
 class PacienteAdmin(admin.ModelAdmin):
     list_display = ['nome', 'cpf']
     exclude = ['password', 'last_login', 'groups', 'user_permissions']
+
+
+@admin.register(LogExames)
+class LogExamesAdmin(admin.ModelAdmin):
+    # Colunas visíveis na lista
+    list_display = ('exame_id', 'nome_evento', 'data_evento', 'medico_id')
+    
+    # Impede alterações manuais nos logs para manter a integridade
+    readonly_fields = ('exame', 'nome_evento', 'data_evento', 'medico_id')

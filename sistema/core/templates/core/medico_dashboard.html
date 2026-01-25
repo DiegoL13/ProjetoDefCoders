@@ -32,7 +32,6 @@
             flex-direction: column;
         }
 
-        /* LOGO GERADA AUTOMATICAMENTE VIA CSS */
         .sidebar-logo {
             margin-bottom: 30px;
             text-align: center;
@@ -125,7 +124,6 @@
 
         .exame-row.hidden { display: none; }
 
-        /* Botão Salvar */
         .btn-save-intuitivo {
             background-color: var(--accent-color);
             color: white;
@@ -145,7 +143,6 @@
         .btn-save-intuitivo:hover { background-color: #2980b9; }
         .btn-save-intuitivo.success { background-color: var(--success-color); }
 
-        /* Galeria e Imagens */
         .mini-galeria {
             grid-column: 1 / -1;
             display: flex;
@@ -309,6 +306,8 @@
         async function guardarAlteracoes(exameId, btn) {
             const res = document.getElementById(`res-${exameId}`).value;
             const dis = document.getElementById(`dispo-${exameId}`).checked;
+            
+            // Criação do FormData para enviar os dados via POST
             const formData = new FormData();
             formData.append('resultado_medico', res);
             formData.append('disponibilidade', dis);
@@ -318,22 +317,34 @@
             btn.disabled = true;
 
             try {
+                // Chamada para a EditarExameView
                 const response = await fetch(`/core/exame/${exameId}/editar/`, {
                     method: 'POST',
                     body: formData,
                     headers: { 'X-CSRFToken': '{{ csrf_token }}' }
                 });
+                
                 const result = await response.json();
+                
                 if (result.success) {
                     btn.classList.add('success');
                     btn.innerHTML = '<i class="fas fa-check"></i> <span>Salvo!</span>';
+                    
+                    // Atualiza o atributo de dado na linha para o filtro funcionar imediatamente
+                    btn.closest('.exame-row').setAttribute('data-dispo', dis);
+                    
                     setTimeout(() => { 
                         btn.classList.remove('success');
                         btn.innerHTML = originalHTML; 
                         btn.disabled = false;
                     }, 2000);
+                } else {
+                    alert('Erro ao salvar: ' + (result.error || 'Erro desconhecido'));
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
                 }
             } catch (e) { 
+                console.error(e);
                 btn.innerHTML = originalHTML; 
                 btn.disabled = false; 
             }
