@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Médico - Def Coders</title>
+    <title>Dashboard Médico - Portal Saúde</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -28,6 +28,31 @@
             color: white;
             padding: 20px;
             position: fixed;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* LOGO GERADA AUTOMATICAMENTE VIA CSS */
+        .sidebar-logo {
+            margin-bottom: 30px;
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .logo-text i {
+            color: var(--accent-color);
+            font-size: 1.8rem;
         }
 
         .main-content {
@@ -43,6 +68,33 @@
             margin-bottom: 30px;
         }
 
+        /* Barra de Filtros */
+        .filter-bar {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr; 
+            gap: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            align-items: center;
+        }
+
+        .search-container { position: relative; width: 100%; }
+        
+        .search-input, .filter-select {
+            width: 100%;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            outline: none;
+            box-sizing: border-box;
+        }
+        
+        .search-input { padding-left: 35px; }
+        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #999; }
+
         /* Tabela/Lista de Exames */
         .exame-list {
             background: white;
@@ -53,35 +105,28 @@
 
         .exame-header {
             display: grid;
-            grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 120px;
+            grid-template-columns: 1.5fr 2fr 1fr 1.5fr 1fr 140px;
             background: #ecf0f1;
             padding: 15px 20px;
             font-weight: bold;
             border-bottom: 2px solid #ddd;
+            gap: 15px;
         }
 
         .exame-row {
             display: grid;
-            grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 120px;
+            grid-template-columns: 1.5fr 2fr 1fr 1.5fr 1fr 140px;
             padding: 15px 20px;
             border-bottom: 1px solid #eee;
             align-items: center;
+            gap: 15px;
             transition: background 0.3s;
         }
 
-        .exame-row:hover {
-            background-color: #f9f9f9;
-        }
+        .exame-row.hidden { display: none; }
 
-        /* Inputs e Botões */
-        .select-edit {
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            width: 100%;
-        }
-
-        .btn-save {
+        /* Botão Salvar */
+        .btn-save-intuitivo {
             background-color: var(--accent-color);
             color: white;
             border: none;
@@ -89,10 +134,37 @@
             border-radius: 5px;
             cursor: pointer;
             transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 600;
+            width: 100%;
         }
 
-        .btn-save:hover { background-color: #2980b9; }
-        .btn-save:disabled { background-color: #bdc3c7; }
+        .btn-save-intuitivo:hover { background-color: #2980b9; }
+        .btn-save-intuitivo.success { background-color: var(--success-color); }
+
+        /* Galeria e Imagens */
+        .mini-galeria {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        .img-thumb-medico {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            cursor: pointer;
+        }
 
         .badge-ia {
             background: #e1f5fe;
@@ -102,19 +174,17 @@
             font-size: 0.9em;
             font-weight: bold;
         }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 40px;
-            height: 20px;
-        }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <h2>Def Coders</h2>
+        <div class="sidebar-logo">
+            <div class="logo-text">
+                <i class="fas fa-heartbeat"></i> Portal Saúde
+            </div>
+        </div>
+        
         <p><i class="fas fa-user-md"></i> Dr(a). {{ medico.nome }}</p>
         <hr>
         <a href="{% url 'criar-exame' medico_id=medico.id %}" style="color: white; text-decoration: none;">
@@ -125,22 +195,39 @@
     <div class="main-content">
         <div class="header">
             <h1>Painel de Exames</h1>
-            <form action="{% url 'logout' %}" method="post">
+            <form action="{% url 'logout' %}?next=/" method="post">
                 {% csrf_token %}
-                <button type="submit" class="btn-save" style="background: #e74c3c;">Sair</button>
+                <button type="submit" style="background: #e74c3c; color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer;">Sair</button>
             </form>
+        </div>
+
+        <div class="filter-bar">
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="filtroNome" class="search-input" placeholder="Nome do Paciente" onkeyup="aplicarFiltros()">
+            </div>
+            <select id="filtroIA" class="filter-select" onchange="aplicarFiltros()">
+                <option value="todos">Todos Resultados IA</option>
+                <option value="BENIGNO">Benigno</option>
+                <option value="MALIGNO">Maligno</option>
+                <option value="SAUDÁVEL">Saudável</option>
+            </select>
+            <select id="filtroStatus" class="filter-select" onchange="aplicarFiltros()">
+                <option value="todos">Todos Status</option>
+                <option value="disponivel">Disponível</option>
+                <option value="indisponivel">Indisponível</option>
+            </select>
         </div>
 
         <div class="exame-list">
             <div class="exame-header">
-                <div>Paciente / Protocolo</div>
+                <div>Paciente</div>
                 <div>Descrição</div>
                 <div>Resultado IA</div>
-                <div>Resultado Médico</div>
+                <div>Médico</div>
                 <div>Status</div>
                 <div>Ação</div>
             </div>
-
             <div id="exames-container">
                 <p style="padding: 20px;">Carregando exames...</p>
             </div>
@@ -151,98 +238,107 @@
         const medicoId = "{{ medico_id }}";
         const container = document.getElementById('exames-container');
 
-        // 1. Função para carregar os exames
         async function carregarExames() {
             try {
                 const response = await fetch(`/core/medicos/${medicoId}/exames/`);
                 const data = await response.json();
-                
                 container.innerHTML = '';
 
-                if (data.length === 0) {
-                    container.innerHTML = '<p style="padding: 20px;">Nenhum exame encontrado.</p>';
-                    return;
-                }
-
                 data.forEach(exame => {
+                    const imagensHtml = exame.imagens && exame.imagens.length > 0 
+                        ? `<div class="mini-galeria">
+                            ${exame.imagens.map(img => `<img src="${img.path}" class="img-thumb-medico" onclick="window.open('${img.path}', '_blank')">`).join('')}
+                           </div>` : '';
+
                     container.innerHTML += `
-                        <div class="exame-row">
+                        <div class="exame-row" 
+                             data-paciente="${exame.paciente_nome.toLowerCase()}" 
+                             data-ia="${exame.resultado_ia}" 
+                             data-dispo="${exame.disponibilidade}">
                             <div>
                                 <strong>${exame.paciente_nome}</strong><br>
                                 <small>#${exame.id}</small>
                             </div>
-                            <div>${exame.descricao || 'Sem descrição'}</div>
+                            <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: help;" 
+                                 title="${exame.descricao || 'Sem descrição'}">
+                                ${exame.descricao || 'Sem descrição'}
+                            </div>
                             <div><span class="badge-ia">${exame.resultado_ia}</span></div>
                             <div>
-                                <select class="select-edit" id="res-${exame.id}">
+                                <select class="filter-select" id="res-${exame.id}" style="padding: 5px;">
                                     <option value="BENIGNO" ${exame.resultado_medico === 'BENIGNO' ? 'selected' : ''}>Benigno</option>
                                     <option value="MALIGNO" ${exame.resultado_medico === 'MALIGNO' ? 'selected' : ''}>Maligno</option>
                                     <option value="SAUDÁVEL" ${exame.resultado_medico === 'SAUDÁVEL' ? 'selected' : ''}>Saudável</option>
                                 </select>
                             </div>
                             <div>
-                                <input type="checkbox" id="dispo-${exame.id}" ${exame.disponibilidade ? 'checked' : ''}>
-                                <label for="dispo-${exame.id}">Disponível</label>
+                                <input type="checkbox" id="dispo-${exame.id}" ${exame.disponibilidade ? 'checked' : ''} onchange="this.closest('.exame-row').setAttribute('data-dispo', this.checked)">
+                                <label for="dispo-${exame.id}"><small>Disponível</small></label>
                             </div>
                             <div>
-                                <button class="btn-save" onclick="guardarAlteracoes(${exame.id}, this)">
-                                    <i class="fas fa-save"></i> Salvar
+                                <button class="btn-save-intuitivo" onclick="guardarAlteracoes(${exame.id}, this)">
+                                    <i class="fas fa-save"></i>
+                                    <span>Salvar</span>
                                 </button>
                             </div>
+                            ${imagensHtml}
                         </div>
                     `;
                 });
-            } catch (error) {
-                container.innerHTML = '<p style="padding: 20px; color: red;">Erro ao carregar exames.</p>';
-            }
+            } catch (e) { container.innerHTML = 'Erro ao carregar dados.'; }
         }
 
-        // 2. Função para salvar sem pop-ups
+        function aplicarFiltros() {
+            const nomeProc = document.getElementById('filtroNome').value.toLowerCase();
+            const iaProc = document.getElementById('filtroIA').value;
+            const statusProc = document.getElementById('filtroStatus').value;
+            const linhas = document.querySelectorAll('.exame-row');
+
+            linhas.forEach(linha => {
+                const nomeMatch = linha.getAttribute('data-paciente').includes(nomeProc);
+                const iaMatch = iaProc === 'todos' || linha.getAttribute('data-ia') === iaProc;
+                const isDispo = linha.getAttribute('data-dispo') === 'true';
+                const statusMatch = statusProc === 'todos' || 
+                                   (statusProc === 'disponivel' && isDispo) || 
+                                   (statusProc === 'indisponivel' && !isDispo);
+
+                linha.classList.toggle('hidden', !(nomeMatch && iaMatch && statusMatch));
+            });
+        }
+
         async function guardarAlteracoes(exameId, btn) {
-            const resultado = document.getElementById(`res-${exameId}`).value;
-            const disponivel = document.getElementById(`dispo-${exameId}`).checked;
-
+            const res = document.getElementById(`res-${exameId}`).value;
+            const dis = document.getElementById(`dispo-${exameId}`).checked;
             const formData = new FormData();
-            formData.append('resultado_medico', resultado);
-            formData.append('disponibilidade', disponivel);
+            formData.append('resultado_medico', res);
+            formData.append('disponibilidade', dis);
 
-            // Feedback visual no botão
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Salvando...</span>';
             btn.disabled = true;
 
             try {
                 const response = await fetch(`/core/exame/${exameId}/editar/`, {
                     method: 'POST',
                     body: formData,
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    }
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
                 });
-
                 const result = await response.json();
-
                 if (result.success) {
-                    btn.style.backgroundColor = '#27ae60';
-                    btn.innerHTML = '<i class="fas fa-check"></i>';
-                    setTimeout(() => {
-                        btn.style.backgroundColor = '';
-                        btn.innerHTML = originalText;
+                    btn.classList.add('success');
+                    btn.innerHTML = '<i class="fas fa-check"></i> <span>Salvo!</span>';
+                    setTimeout(() => { 
+                        btn.classList.remove('success');
+                        btn.innerHTML = originalHTML; 
                         btn.disabled = false;
                     }, 2000);
-                } else {
-                    alert("Erro ao salvar: " + result.error);
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
                 }
-            } catch (error) {
-                alert("Erro de conexão.");
-                btn.disabled = false;
-                btn.innerHTML = originalText;
+            } catch (e) { 
+                btn.innerHTML = originalHTML; 
+                btn.disabled = false; 
             }
         }
 
-        // Inicializa a página
         carregarExames();
     </script>
 </body>
