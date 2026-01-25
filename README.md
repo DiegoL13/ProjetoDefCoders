@@ -31,7 +31,7 @@ Este sistema permite que profissionais de saúde façam o upload de imagens de m
 
 ## **🛠️ Tecnologias Utilizadas**
 
-**Backend:** Python 3.x, Django 5.x.
+**Backend:** Python 3.x, Django 6.x.
 
 **API:** Django REST Framework.
 
