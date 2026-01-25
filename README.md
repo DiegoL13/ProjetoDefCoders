@@ -9,7 +9,7 @@
 
 
 
-## **📑 Sumário**
+# **📑 Sumário**
 
 Sobre o Projeto
 
@@ -22,7 +22,7 @@ Como Instalar
 
 
 
-## **🔬 Sobre o Projeto**
+# **🔬 Sobre o Projeto**
 
 Este sistema permite que profissionais de saúde façam o upload de imagens de microscopia digital e recebam uma classificação automatizada da IA. O objetivo é validar protótipos de aprendizado de máquina e otimizar o fluxo de laudos médicos.
 
@@ -55,11 +55,11 @@ Este sistema permite que profissionais de saúde façam o upload de imagens de m
 
 
 
-## **✨ Principais Funcionalidades**
+# **✨ Principais Funcionalidades**
 
 
 
-### **👨‍⚕️ Área do Médico**
+## **👨‍⚕️ Área do Médico**
 
 Dashboard de Exames: Gestão centralizada de pacientes e diagnósticos.
 
@@ -69,16 +69,16 @@ Validação de IA: Recebimento de prévia (Benigno/Maligno/Saudável) com opçã
 
 
 
-### **👤 Área do Paciente**
+## **👤 Área do Paciente**
 
 Laudos Liberados: Acesso aos resultados apenas após a autorização do médico responsável.
 
 
 
 
-## **📊 Estrutura de Dados**
+# **📊 Estrutura de Dados**
 
-O sistema utiliza os seguintes modelos principais:
+## O sistema utiliza os seguintes modelos principais:
 
 Modelo - Descrição
 
@@ -95,17 +95,17 @@ Imagem - Armazena os caminhos das imagens histopatológicas.
 
 
 
-## **Como Instalar**
+# **Como Instalar**
 
 
 
-### **Clone o repositório:**
+## **Clone o repositório:**
 
 git clone https://github.com/seu-usuario/projeto-diagnostico.git
 
 
 
-### **Configure o ambiente:**
+## **Configure o ambiente:**
 
 python -m venv .venv
 
@@ -115,7 +115,7 @@ venv\Scripts\activate      (Windows)
 
 
 
-### **Instale as dependências:**
+## **Instale as dependências:**
 
 pip install django djangorestframework
 
@@ -123,7 +123,7 @@ pip -r requirements.txt
 
 
 
-### **Migre o Banco de Dados:**
+## **Migre o Banco de Dados:**
 
 python manage.py migrate
 
@@ -133,6 +133,6 @@ python manage.py createsuperuser
 
 
 
-### **Inicie o servidor: python manage.py runserver.**
+## **Inicie o servidor: python manage.py runserver.**
 
 Acesse http://127.0.0.1:8000/
