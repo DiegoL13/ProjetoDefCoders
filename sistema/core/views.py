@@ -109,15 +109,13 @@ class EditarExameView(View):
     def post(self, request, exame_id):
         exame = get_object_or_404(Exame, id=exame_id)
         
-        # 1. Verifica se o usuário tem perfil de médico
         if not hasattr(request.user, 'medico'):
-            return JsonResponse({'success': False, 'error': 'Usuário não é um médico cadastrado.'}, status=403)
+            return JsonResponse({'success': False, 'error': 'Acesso negado.'}, status=403)
         
-        # 2. Verifica se o médico logado é o responsável por este exame
-        if exame.medico != request.user.medico:
-            return JsonResponse({'success': False, 'error': 'Acesso negado: Você não é o médico deste exame.'}, status=403)
+        # Guardamos os estados antigos para comparar mudanças
+        resultado_antigo = exame.resultado_medico
+        disponibilidade_antiga = exame.disponibilidade
 
-        # 3. Captura os dados enviados pelo JavaScript (FormData)
         resultado_medico = request.POST.get('resultado_medico')
         disponibilidade = request.POST.get('disponibilidade') == 'true'
 
@@ -125,6 +123,26 @@ class EditarExameView(View):
             exame.resultado_medico = resultado_medico
             exame.disponibilidade = disponibilidade
             exame.save()
+
+            # --- REGISTO DE LOGS DE EDIÇÃO ---
+            medico_logado_id = request.user.medico.id
+
+            # Regista se o resultado médico foi alterado
+            if resultado_antigo != resultado_medico:
+                LogExames.objects.create(
+                    exame=exame,
+                    nome_evento='Revisão por médico',
+                    medico_id=medico_logado_id
+                )
+
+            # Regista se o exame foi disponibilizado (de False para True)
+            if not disponibilidade_antiga and disponibilidade:
+                LogExames.objects.create(
+                    exame=exame,
+                    nome_evento='Disponibilização para o paciente',
+                    medico_id=medico_logado_id
+                )
+
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)

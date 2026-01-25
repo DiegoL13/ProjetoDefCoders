@@ -18,3 +18,10 @@ RESULTADOS = (
       ('MALIGNO', 'Maligno'),
       ('SAUDÁVEL', 'Saudável')
   )
+
+EVENTOS_CHOICES = [
+        ('Criação', 'Criação'),
+        ('Disponibilização para o paciente', 'Disponibilização para o paciente'),
+        ('Revisão por IA', 'Revisão por IA'),
+        ('Revisão por médico', 'Revisão por médico'),
+    ]
