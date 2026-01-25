@@ -1,11 +1,16 @@
 
 # **Sistema de Apoio ao Diagnóstico Histopatológico**
+
+
+
+
 ## Solução tecnológica para auxiliar médicos no diagnóstico de câncer via Inteligência Artificial, desenvolvida para o Grupo de Pesquisas em Computação Biomédica.
 
 
 
 
 ## **📑 Sumário**
+
 Sobre o Projeto
 
 Principais Funcionalidades
@@ -21,6 +26,9 @@ Como Instalar
 
 Este sistema permite que profissionais de saúde façam o upload de imagens de microscopia digital e recebam uma classificação automatizada da IA. O objetivo é validar protótipos de aprendizado de máquina e otimizar o fluxo de laudos médicos.
 
+
+
+
 ## **🛠️ Tecnologias Utilizadas**
 
 **Backend:** Python 3.x, Django 5.x.
@@ -30,6 +38,9 @@ Este sistema permite que profissionais de saúde façam o upload de imagens de m
 **Banco de Dados:** SQLite (Desenvolvimento) / PostgreSQL (Produção).
 
 **Autenticação:** Django Auth System.
+
+
+
 
 ## **📂 Estrutura de Arquivos Principal**
 
@@ -46,12 +57,17 @@ Este sistema permite que profissionais de saúde façam o upload de imagens de m
 
 ## **✨ Principais Funcionalidades**
 
+
+
 ### **👨‍⚕️ Área do Médico**
+
 Dashboard de Exames: Gestão centralizada de pacientes e diagnósticos.
 
 Upload Inteligente: Suporte a múltiplas imagens por exame.
 
 Validação de IA: Recebimento de prévia (Benigno/Maligno/Saudável) com opção de revisão manual.
+
+
 
 ### **👤 Área do Paciente**
 
@@ -81,9 +97,12 @@ Imagem - Armazena os caminhos das imagens histopatológicas.
 
 ## **Como Instalar**
 
+
+
 ### **Clone o repositório:**
 
 git clone https://github.com/seu-usuario/projeto-diagnostico.git
+
 
 
 ### **Configure o ambiente:**
@@ -95,6 +114,7 @@ source venv/bin/activate   (Linux/Mac)
 venv\Scripts\activate      (Windows)
 
 
+
 ### **Instale as dependências:**
 
 pip install django djangorestframework
@@ -102,11 +122,16 @@ pip install django djangorestframework
 pip -r requirements.txt
 
 
+
 ### **Migre o Banco de Dados:**
 
 python manage.py migrate
+
 python manage.py makemigrate
+
 python manage.py createsuperuser
+
+
 
 ### **Inicie o servidor: python manage.py runserver.**
 
