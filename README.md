@@ -44,7 +44,7 @@ Este sistema permite que profissionais de saúde façam o upload de imagens de m
 
 ## **📂 Estrutura de Arquivos Principal**
 
-**models.py:** Define a estrutura de Usuario, Medico, Paciente, Exame e LogExames.
+**models.py:** Define a estrutura de Usuario, Medico, Paciente, Imagem, Exame e LogExames.
 
 **views.py:** Contém a lógica de negócio, incluindo a simulação da IA e controle de acesso.
 
