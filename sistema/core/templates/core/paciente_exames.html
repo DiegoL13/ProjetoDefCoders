@@ -32,6 +32,22 @@
     .exame-body { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
     .resultado-principal { font-size: 1.2em; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
     
+    /* Estilos da Galeria de Imagens */
+    .galeria-exame { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+    .img-exame-thumb { 
+        width: 80px; 
+        height: 80px; 
+        object-fit: cover; 
+        border-radius: 8px; 
+        border: 1px solid #e2e8f0; 
+        cursor: pointer; 
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .img-exame-thumb:hover { 
+        transform: scale(1.05); 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+    }
+
     .medico-info { background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 0.9em; }
     .empty-state { text-align: center; padding: 60px; background: white; border-radius: 12px; border: 2px dashed #cbd5e1; }
     
@@ -42,6 +58,7 @@
       .main-content { margin-left: 0; padding: 20px; }
       .exame-body { grid-template-columns: 1fr; }
     }
+    
   </style>
 </head>
 <body>
@@ -116,6 +133,18 @@
         pageItems.forEach(exame => {
             const div = document.createElement('div');
             div.className = 'exame-card';
+            
+            // Gera o HTML para a galeria de imagens
+            const imagensHtml = exame.imagens && exame.imagens.length > 0 
+                ? `<div class="galeria-exame">
+                    ${exame.imagens.map(img => `
+                        <a href="${img.path}" target="_blank">
+                            <img src="${img.path}" class="img-exame-thumb" alt="Imagem do exame" title="Clique para ampliar">
+                        </a>
+                    `).join('')}
+                   </div>`
+                : '';
+
             div.innerHTML = `
                 <div class="exame-header">
                     <span class="protocolo"><i class="fas fa-hashtag"></i> Protocolo: ${exame.id}</span>
@@ -125,6 +154,7 @@
                     <div>
                         <div class="resultado-principal">${exame.resultado_medico || 'Análise em andamento'}</div>
                         <p style="color: #475569; margin-top: 15px; font-size: 0.95em;">${exame.descricao || ''}</p>
+                        ${imagensHtml}
                     </div>
                     <div class="medico-info">
                         <div><strong>Responsável:</strong></div>
@@ -138,7 +168,7 @@
 
         updateStats();
         updatePager();
-    } // Fim da renderPage
+    } 
 
     function updateStats() {
         document.getElementById('totalExames').textContent = allExames.length;
@@ -162,7 +192,6 @@
         }
     }
 
-    // Eventos de Paginação
     document.getElementById('pageSizeSelect').addEventListener('change', (e) => {
         pageSize = parseInt(e.target.value);
         currentPage = 1;
@@ -184,7 +213,6 @@
         }
     });
 
-    // Fluxo de execução
     if (pacienteId) {
         fetch(apiUrl, {
             headers: {
