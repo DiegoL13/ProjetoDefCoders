@@ -35,7 +35,7 @@ Este sistema permite que profissionais de saúde façam o upload de imagens de m
 
 **API:** Django REST Framework.
 
-**Banco de Dados:** SQLite (Desenvolvimento) / PostgreSQL (Produção).
+**Banco de Dados:** SQLite (Desenvolvimento).
 
 **Autenticação:** Django Auth System.
 
