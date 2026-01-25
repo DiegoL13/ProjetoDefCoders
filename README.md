@@ -101,7 +101,7 @@ Imagem - Armazena os caminhos das imagens histopatológicas.
 
 ## **Clone o repositório:**
 
-git clone https://github.com/seu-usuario/projeto-diagnostico.git
+git clone https://github.com/DiegoL13/ProjetoDefCoders.git
 
 
 
@@ -111,13 +111,11 @@ python -m venv .venv
 
 source venv/bin/activate   (Linux/Mac)
 
-venv\Scripts\activate      (Windows)
+.venv\Scripts\activate      (Windows)
 
 
 
 ## **Instale as dependências:**
-
-pip install django djangorestframework
 
 pip -r requirements.txt
 
@@ -127,7 +125,7 @@ pip -r requirements.txt
 
 python manage.py migrate
 
-python manage.py makemigrate
+python manage.py makemigrations
 
 python manage.py createsuperuser
 
