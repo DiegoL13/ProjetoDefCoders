@@ -1,356 +1,629 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Médico - Portal Saúde</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #2c3e50;
-            --accent-color: #3498db;
-            --success-color: #27ae60;
-            --bg-color: #f4f7f6;
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Painel do Médico{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        padding: 2rem 5%;
+        background-color: var(--bg-light);
+    }
+
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        background: var(--white);
+        padding: 1.5rem 2rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.75rem;
+        color: var(--secondary);
+    }
+
+    .btn-new-exam {
+        background: var(--primary);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s;
+    }
+
+    .btn-new-exam:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 191, 255, 0.3);
+    }
+
+    /* Modo Edição Controls */
+    .modo-controls {
+        background: var(--white);
+        padding: 1rem 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .modo-toggle-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+    }
+
+    .switch input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #cbd5e1;
+        transition: .4s;
+        border-radius: 34px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(26px); }
+
+    .modo-indicator {
+        padding: 0.4rem 1rem;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .modo-visualizacao { background: #e0f7ff; color: var(--primary-dark); }
+    .modo-edicao { background: #fff3cd; color: #856404; }
+
+    /* Exame List */
+    .exame-card {
+        background: var(--white);
+        border-radius: 15px;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        overflow: hidden;
+        border: 1px solid var(--border);
+        transition: all 0.3s;
+    }
+
+    .exame-card:hover {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+
+    .exame-summary {
+        padding: 1.5rem 2rem;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr auto;
+        align-items: center;
+        gap: 1.5rem;
+        cursor: pointer;
+    }
+
+    .patient-info strong {
+        display: block;
+        font-size: 1.1rem;
+        color: var(--secondary);
+    }
+
+    .patient-info span {
+        font-size: 0.85rem;
+        color: var(--text-light);
+    }
+
+    .badge {
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .badge-ia { background: #f0f9ff; color: var(--primary); border: 1px solid #e0f2fe; }
+    .badge-status { background: #f8fafc; color: var(--text-light); border: 1px solid var(--border); }
+    .badge-available { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+
+    .btn-expand {
+        background: none;
+        border: none;
+        color: var(--text-light);
+        font-size: 1.2rem;
+        transition: transform 0.3s;
+    }
+
+    .exame-card.expanded .btn-expand { transform: rotate(180deg); }
+
+    /* Expanded Content */
+    .exame-details {
+        display: none;
+        padding: 2rem;
+        background: #fcfdfe;
+        border-top: 1px solid var(--border);
+    }
+
+    .exame-card.expanded .exame-details { display: block; }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+
+    .form-group { margin-bottom: 1.5rem; }
+    .form-label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
+
+    .textarea-edit, .select-edit {
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        transition: all 0.3s;
+    }
+
+    .textarea-edit:focus, .select-edit:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.1);
+    }
+
+    .textarea-edit:disabled, .select-edit:disabled {
+        background: #f8fafc;
+        color: #64748b;
+        cursor: not-allowed;
+    }
+
+    /* Galerias */
+    .gallery-section h4 { margin-bottom: 1rem; color: var(--secondary); font-size: 1rem; }
+    
+    .image-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .img-wrapper {
+        position: relative;
+        width: 100px;
+        height: 100px;
+    }
+
+    .img-thumb {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 2px solid var(--border);
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .img-thumb:hover { transform: scale(1.05); border-color: var(--primary); }
+    .img-thumb.marked-for-deletion { opacity: 0.3; border-color: var(--danger); border-style: dashed; }
+
+    .btn-remove-img {
+        position: absolute;
+        top: -8px; right: -8px;
+        background: var(--danger);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px; height: 24px;
+        display: none;
+        align-items: center; justify-content: center;
+        cursor: pointer;
+        z-index: 5;
+    }
+
+    .modo-edicao .btn-remove-img { display: flex; }
+
+    /* Upload Area */
+    .upload-area {
+        border: 2px dashed #cbd5e1;
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+        background: #f8fafc;
+        display: none;
+        transition: all 0.3s;
+    }
+
+    .modo-edicao .upload-area { display: block; }
+    .upload-area:hover { border-color: var(--primary); background: #f0f9ff; }
+
+    .btn-save-changes {
+        background: var(--success);
+        color: white;
+        border: none;
+        padding: 0.8rem 2rem;
+        border-radius: 50px;
+        font-weight: 700;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        margin-top: 1.5rem;
+        width: 100%;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+
+    .btn-save-changes:hover { filter: brightness(0.9); transform: translateY(-2px); }
+
+    /* Feedback */
+    .toast-container {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 2000;
+    }
+
+    .toast {
+        padding: 1rem 1.5rem;
+        background: var(--secondary);
+        color: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        margin-top: 1rem;
+        animation: slideInRight 0.3s ease;
+    }
+
+    @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    @media (max-width: 992px) {
+        .exame-summary {
+            grid-template-columns: 1fr 1fr;
         }
+        .details-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            display: flex;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            width: 250px;
-            height: 100vh;
-            background-color: var(--primary-color);
-            color: white;
-            padding: 20px;
-            position: fixed;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sidebar-logo {
-            margin-bottom: 30px;
-            text-align: center;
-            padding: 10px 0;
-        }
-
-        .logo-text {
-            font-size: 1.5rem;
-            font-weight: bold;
-            letter-spacing: 1px;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .logo-text i {
-            color: var(--accent-color);
-            font-size: 1.8rem;
-        }
-
-        .main-content {
-            margin-left: 290px;
-            padding: 40px;
-            width: calc(100% - 330px);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-
-        /* Barra de Filtros */
-        .filter-bar {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr; 
-            gap: 20px;
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            align-items: center;
-        }
-
-        .search-container { position: relative; width: 100%; }
-        
-        .search-input, .filter-select {
-            width: 100%;
-            padding: 10px 15px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            outline: none;
-            box-sizing: border-box;
-        }
-        
-        .search-input { padding-left: 35px; }
-        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #999; }
-
-        /* Tabela/Lista de Exames */
-        .exame-list {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .exame-header {
-            display: grid;
-            grid-template-columns: 1.5fr 2fr 1fr 1.5fr 1fr 140px;
-            background: #ecf0f1;
-            padding: 15px 20px;
-            font-weight: bold;
-            border-bottom: 2px solid #ddd;
-            gap: 15px;
-        }
-
-        .exame-row {
-            display: grid;
-            grid-template-columns: 1.5fr 2fr 1fr 1.5fr 1fr 140px;
-            padding: 15px 20px;
-            border-bottom: 1px solid #eee;
-            align-items: center;
-            gap: 15px;
-            transition: background 0.3s;
-        }
-
-        .exame-row.hidden { display: none; }
-
-        .btn-save-intuitivo {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-weight: 600;
-            width: 100%;
-        }
-
-        .btn-save-intuitivo:hover { background-color: #2980b9; }
-        .btn-save-intuitivo.success { background-color: var(--success-color); }
-
-        .mini-galeria {
-            grid-column: 1 / -1;
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
-            background: #f8fafc;
-            padding: 10px;
-            border-radius: 8px;
-            overflow-x: auto;
-        }
-
-        .img-thumb-medico {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 4px;
-            border: 1px solid #cbd5e1;
-            cursor: pointer;
-        }
-
-        .badge-ia {
-            background: #e1f5fe;
-            color: #0288d1;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.9em;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="sidebar">
-        <div class="sidebar-logo">
-            <div class="logo-text">
-                <i class="fas fa-heartbeat"></i> Portal Saúde
-            </div>
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div>
+            <h1>Painel do Médico</h1>
+            <p style="color: var(--text-light);">Bem-vindo, Dr(a). {{ medico.nome }}</p>
         </div>
-        
-        <p><i class="fas fa-user-md"></i> Dr(a). {{ medico.nome }}</p>
-        <hr>
-        <a href="{% url 'criar-exame' medico_id=medico.id %}" style="color: white; text-decoration: none;">
-            <button style="width: 100%; padding: 10px; cursor: pointer;">+ Novo Exame</button>
+        <a href="{% url 'criar-exame' medico_id=medico.id %}" class="btn-new-exam">
+            <i class="fas fa-plus"></i> Novo Exame
         </a>
     </div>
 
-    <div class="main-content">
-        <div class="header">
-            <h1>Painel de Exames</h1>
-            <form action="{% url 'logout' %}?next=/" method="post">
-                {% csrf_token %}
-                <button type="submit" style="background: #e74c3c; color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer;">Sair</button>
-            </form>
+    <div class="modo-controls">
+        <div class="modo-toggle-wrapper">
+            <span style="font-weight: 600; color: var(--text-light);">Modo de Operação:</span>
+            <label class="switch">
+                <input type="checkbox" id="modoEdicaoToggle">
+                <span class="slider"></span>
+            </label>
+            <div id="modoIndicator" class="modo-indicator modo-visualizacao">
+                <i class="fas fa-eye"></i> Visualização
+            </div>
         </div>
-
-        <div class="filter-bar">
-            <div class="search-container">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" id="filtroNome" class="search-input" placeholder="Nome do Paciente" onkeyup="aplicarFiltros()">
-            </div>
-            <select id="filtroIA" class="filter-select" onchange="aplicarFiltros()">
-                <option value="todos">Todos Resultados IA</option>
-                <option value="BENIGNO">Benigno</option>
-                <option value="MALIGNO">Maligno</option>
-                <option value="SAUDÁVEL">Saudável</option>
-            </select>
-            <select id="filtroStatus" class="filter-select" onchange="aplicarFiltros()">
-                <option value="todos">Todos Status</option>
-                <option value="disponivel">Disponível</option>
-                <option value="indisponivel">Indisponível</option>
-            </select>
-        </div>
-
-        <div class="exame-list">
-            <div class="exame-header">
-                <div>Paciente</div>
-                <div>Descrição</div>
-                <div>Resultado IA</div>
-                <div>Médico</div>
-                <div>Status</div>
-                <div>Ação</div>
-            </div>
-            <div id="exames-container">
-                <p style="padding: 20px;">Carregando exames...</p>
-            </div>
+        <div style="font-size: 0.85rem; color: var(--text-light);">
+            <i class="fas fa-info-circle"></i> Alterne para o modo edição para atualizar laudos e imagens.
         </div>
     </div>
 
-    <script>
-        const medicoId = "{{ medico_id }}";
-        const container = document.getElementById('exames-container');
+    <div id="exames-container">
+        <div style="text-align: center; padding: 4rem;">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color: var(--primary);"></i>
+            <p style="margin-top: 1rem;">Carregando exames...</p>
+        </div>
+    </div>
+</div>
 
-        async function carregarExames() {
-            try {
-                const response = await fetch(`/core/medicos/${medicoId}/exames/`);
-                const data = await response.json();
-                container.innerHTML = '';
+<div class="toast-container" id="toast-container"></div>
+{% endblock %}
 
-                data.forEach(exame => {
-                    const imagensHtml = exame.imagens && exame.imagens.length > 0 
-                        ? `<div class="mini-galeria">
-                            ${exame.imagens.map(img => `<img src="${img.path}" class="img-thumb-medico" onclick="window.open('${img.path}', '_blank')">`).join('')}
-                           </div>` : '';
+{% block extra_js %}
+<script>
+    const medicoId = "{{ medico_id }}";
+    const container = document.getElementById('exames-container');
+    const modoToggle = document.getElementById('modoEdicaoToggle');
+    const indicator = document.getElementById('modoIndicator');
+    
+    let pendingRemovals = {};
+    let pendingUploads = {};
 
-                    container.innerHTML += `
-                        <div class="exame-row" 
-                             data-paciente="${exame.paciente_nome.toLowerCase()}" 
-                             data-ia="${exame.resultado_ia}" 
-                             data-dispo="${exame.disponibilidade}">
-                            <div>
-                                <strong>${exame.paciente_nome}</strong><br>
-                                <small>#${exame.id}</small>
-                            </div>
-                            <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: help;" 
-                                 title="${exame.descricao || 'Sem descrição'}">
-                                ${exame.descricao || 'Sem descrição'}
-                            </div>
-                            <div><span class="badge-ia">${exame.resultado_ia}</span></div>
-                            <div>
-                                <select class="filter-select" id="res-${exame.id}" style="padding: 5px;">
-                                    <option value="BENIGNO" ${exame.resultado_medico === 'BENIGNO' ? 'selected' : ''}>Benigno</option>
-                                    <option value="MALIGNO" ${exame.resultado_medico === 'MALIGNO' ? 'selected' : ''}>Maligno</option>
-                                    <option value="SAUDÁVEL" ${exame.resultado_medico === 'SAUDÁVEL' ? 'selected' : ''}>Saudável</option>
-                                </select>
-                            </div>
-                            <div>
-                                <input type="checkbox" id="dispo-${exame.id}" ${exame.disponibilidade ? 'checked' : ''} onchange="this.closest('.exame-row').setAttribute('data-dispo', this.checked)">
-                                <label for="dispo-${exame.id}"><small>Disponível</small></label>
-                            </div>
-                            <div>
-                                <button class="btn-save-intuitivo" onclick="guardarAlteracoes(${exame.id}, this)">
-                                    <i class="fas fa-save"></i>
-                                    <span>Salvar</span>
-                                </button>
-                            </div>
-                            ${imagensHtml}
-                        </div>
-                    `;
-                });
-            } catch (e) { container.innerHTML = 'Erro ao carregar dados.'; }
+    // Toggle Mode
+    modoToggle.addEventListener('change', function() {
+        const isEdit = this.checked;
+        document.body.classList.toggle('modo-edicao', isEdit);
+        
+        if (isEdit) {
+            indicator.className = 'modo-indicator modo-edicao';
+            indicator.innerHTML = '<i class="fas fa-edit"></i> Edição';
+            showToast('Modo de edição ativado', 'info');
+        } else {
+            indicator.className = 'modo-indicator modo-visualizacao';
+            indicator.innerHTML = '<i class="fas fa-eye"></i> Visualização';
+            showToast('Retornou ao modo de visualização', 'info');
+            // Reset pending changes could be added here
         }
+        
+        updateInputStates(isEdit);
+    });
 
-        function aplicarFiltros() {
-            const nomeProc = document.getElementById('filtroNome').value.toLowerCase();
-            const iaProc = document.getElementById('filtroIA').value;
-            const statusProc = document.getElementById('filtroStatus').value;
-            const linhas = document.querySelectorAll('.exame-row');
-
-            linhas.forEach(linha => {
-                const nomeMatch = linha.getAttribute('data-paciente').includes(nomeProc);
-                const iaMatch = iaProc === 'todos' || linha.getAttribute('data-ia') === iaProc;
-                const isDispo = linha.getAttribute('data-dispo') === 'true';
-                const statusMatch = statusProc === 'todos' || 
-                                   (statusProc === 'disponivel' && isDispo) || 
-                                   (statusProc === 'indisponivel' && !isDispo);
-
-                linha.classList.toggle('hidden', !(nomeMatch && iaMatch && statusMatch));
-            });
-        }
-
-        async function guardarAlteracoes(exameId, btn) {
-            const res = document.getElementById(`res-${exameId}`).value;
-            const dis = document.getElementById(`dispo-${exameId}`).checked;
-            
-            // Criação do FormData para enviar os dados via POST
-            const formData = new FormData();
-            formData.append('resultado_medico', res);
-            formData.append('disponibilidade', dis);
-
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Salvando...</span>';
-            btn.disabled = true;
-
-            try {
-                // Chamada para a EditarExameView
-                const response = await fetch(`/core/exame/${exameId}/editar/`, {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    btn.classList.add('success');
-                    btn.innerHTML = '<i class="fas fa-check"></i> <span>Salvo!</span>';
-                    
-                    // Atualiza o atributo de dado na linha para o filtro funcionar imediatamente
-                    btn.closest('.exame-row').setAttribute('data-dispo', dis);
-                    
-                    setTimeout(() => { 
-                        btn.classList.remove('success');
-                        btn.innerHTML = originalHTML; 
-                        btn.disabled = false;
-                    }, 2000);
-                } else {
-                    alert('Erro ao salvar: ' + (result.error || 'Erro desconhecido'));
-                    btn.innerHTML = originalHTML;
-                    btn.disabled = false;
-                }
-            } catch (e) { 
-                console.error(e);
-                btn.innerHTML = originalHTML; 
-                btn.disabled = false; 
+    function updateInputStates(isEdit) {
+        document.querySelectorAll('.textarea-edit, .select-edit, .check-dispo').forEach(el => {
+            el.disabled = !isEdit;
+        });
+        
+        document.querySelectorAll('.btn-save-changes').forEach(btn => {
+            const card = btn.closest('.exame-card');
+            if (isEdit && card.classList.contains('expanded')) {
+                btn.style.display = 'flex';
+            } else {
+                btn.style.display = 'none';
             }
+        });
+    }
+
+    async function loadExames() {
+        try {
+            const response = await fetch(`/medicos/${medicoId}/exames/`);
+            const data = await response.json();
+            
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 5rem; background: white; border-radius: 20px;">
+                        <i class="fas fa-folder-open fa-3x" style="color: #cbd5e1; margin-bottom: 1.5rem;"></i>
+                        <h3 style="color: var(--secondary);">Nenhum exame encontrado</h3>
+                        <p style="color: var(--text-light);">Você ainda não criou nenhum exame médico.</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            data.forEach(exame => {
+                const card = document.createElement('div');
+                card.className = 'exame-card';
+                card.id = `exame-${exame.id}`;
+                
+                const imagesHtml = (exame.imagens || []).map(img => `
+                    <div class="img-wrapper">
+                        <img src="${img.path}" class="img-thumb" onclick="window.open('${img.path}', '_blank')">
+                        <button class="btn-remove-img" onclick="toggleImageRemoval(${exame.id}, ${img.id}, this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `).join('');
+
+                card.innerHTML = `
+                    <div class="exame-summary" onclick="toggleExpand(${exame.id})">
+                        <div class="patient-info">
+                            <strong>${exame.paciente_nome}</strong>
+                            <span>Protocolo #${exame.id} • ${new Date(exame.data_criacao).toLocaleDateString()}</span>
+                        </div>
+                        <div><span class="badge badge-ia">IA: ${exame.resultado_ia}</span></div>
+                        <div><span class="badge badge-status">${exame.resultado_medico}</span></div>
+                        <div>
+                            ${exame.disponibilidade 
+                                ? '<span class="badge badge-available"><i class="fas fa-check-circle"></i> Liberado</span>' 
+                                : '<span class="badge badge-status"><i class="fas fa-clock"></i> Pendente</span>'}
+                        </div>
+                        <button class="btn-expand"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                    
+                    <div class="exame-details" id="details-${exame.id}">
+                        <div class="details-grid">
+                            <div class="info-section">
+                                <div class="form-group">
+                                    <label class="form-label">Laudo / Descrição</label>
+                                    <textarea class="textarea-edit" id="desc-${exame.id}" rows="5" disabled>${exame.descricao || ''}</textarea>
+                                </div>
+                                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                                    <div class="form-group">
+                                        <label class="form-label">Resultado Médico</label>
+                                        <select class="select-edit" id="res-${exame.id}" disabled>
+                                            <option value="BENIGNO" ${exame.resultado_medico === 'BENIGNO' ? 'selected' : ''}>Benigno</option>
+                                            <option value="MALIGNO" ${exame.resultado_medico === 'MALIGNO' ? 'selected' : ''}>Maligno</option>
+                                            <option value="SAUDÁVEL" ${exame.resultado_medico === 'SAUDÁVEL' ? 'selected' : ''}>Saudável</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Disponibilidade</label>
+                                        <div style="display:flex; align-items:center; height:42px; gap:8px;">
+                                            <input type="checkbox" class="check-dispo" id="dispo-${exame.id}" ${exame.disponibilidade ? 'checked' : ''} disabled style="width:20px; height:20px;">
+                                            <span style="font-size:0.9rem;">Liberar para o paciente</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="gallery-section">
+                                <h4>Imagens do Exame</h4>
+                                <div class="image-grid" id="gallery-${exame.id}">
+                                    ${imagesHtml}
+                                </div>
+                                
+                                <div class="upload-area">
+                                    <label for="upload-${exame.id}" style="cursor:pointer; display:block;">
+                                        <i class="fas fa-cloud-upload-alt fa-2x" style="color: var(--primary); margin-bottom:0.5rem;"></i>
+                                        <p style="font-size:0.9rem; font-weight:600;">Clique para adicionar novas imagens</p>
+                                    </label>
+                                    <input type="file" id="upload-${exame.id}" multiple accept="image/*" style="display:none;" onchange="handleUploadPreview(${exame.id}, this)">
+                                    <div id="preview-${exame.id}" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:1rem; justify-content:center;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="btn-save-changes" id="save-btn-${exame.id}" onclick="saveExam(${exame.id}, this)">
+                            <i class="fas fa-save"></i> Salvar Alterações
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            
+            // Initial state check
+            updateInputStates(modoToggle.checked);
+            
+        } catch (error) {
+            container.innerHTML = '<p style="color:red; text-align:center;">Erro ao carregar exames.</p>';
+            console.error(error);
+        }
+    }
+
+    function toggleExpand(id) {
+        const card = document.getElementById(`exame-${id}`);
+        const isExpanded = card.classList.toggle('expanded');
+        const saveBtn = document.getElementById(`save-btn-${id}`);
+        
+        if (isExpanded && modoToggle.checked) {
+            saveBtn.style.display = 'flex';
+        } else {
+            saveBtn.style.display = 'none';
+        }
+    }
+
+    function toggleImageRemoval(exameId, imgId, btn) {
+        const img = btn.previousElementSibling;
+        const isMarked = img.classList.toggle('marked-for-deletion');
+        
+        if (!pendingRemovals[exameId]) pendingRemovals[exameId] = [];
+        
+        if (isMarked) {
+            btn.innerHTML = '<i class="fas fa-undo"></i>';
+            btn.style.background = 'var(--secondary)';
+            pendingRemovals[exameId].push(imgId);
+        } else {
+            btn.innerHTML = '<i class="fas fa-times"></i>';
+            btn.style.background = 'var(--danger)';
+            pendingRemovals[exameId] = pendingRemovals[exameId].filter(id => id !== imgId);
+        }
+    }
+
+    function handleUploadPreview(exameId, input) {
+        const files = Array.from(input.files);
+        const preview = document.getElementById(`preview-${exameId}`);
+        
+        if (!pendingUploads[exameId]) pendingUploads[exameId] = [];
+        
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'img-wrapper';
+                div.innerHTML = `
+                    <img src="${e.target.result}" class="img-thumb" style="border-color: var(--success);">
+                    <div style="position:absolute; bottom:0; width:100%; background:rgba(39, 174, 96, 0.8); color:white; font-size:10px; text-align:center;">Novo</div>
+                `;
+                preview.appendChild(div);
+                pendingUploads[exameId].push(file);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function saveExam(id, btn) {
+        const desc = document.getElementById(`desc-${id}`).value;
+        const res = document.getElementById(`res-${id}`).value;
+        const dispo = document.getElementById(`dispo-${id}`).checked;
+
+        const formData = new FormData();
+        formData.append('descricao', desc);
+        formData.append('resultado_medico', res);
+        formData.append('disponibilidade', dispo);
+
+        if (pendingRemovals[id]) {
+            pendingRemovals[id].forEach(imgId => formData.append('imagens_remover', imgId));
+        }
+        
+        if (pendingUploads[id]) {
+            pendingUploads[id].forEach(file => formData.append('novas_imagens', file));
         }
 
-        carregarExames();
-    </script>
-</body>
-</html>
+        const originalBtn = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        btn.disabled = true;
+
+        try {
+            const response = await fetch(`/exame/${id}/editar/`, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showToast('Exame atualizado com sucesso!', 'success');
+                btn.innerHTML = '<i class="fas fa-check"></i> Concluído';
+                btn.style.background = 'var(--success)';
+                
+                setTimeout(() => {
+                    delete pendingRemovals[id];
+                    delete pendingUploads[id];
+                    loadExames();
+                }, 1500);
+            } else {
+                showToast('Erro: ' + (result.error || 'Falha ao salvar'), 'error');
+                btn.innerHTML = originalBtn;
+                btn.disabled = false;
+            }
+        } catch (e) {
+            showToast('Erro de conexão', 'error');
+            btn.innerHTML = originalBtn;
+            btn.disabled = false;
+        }
+    }
+
+    function showToast(msg, type) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        if (type === 'success') toast.style.background = 'var(--success)';
+        if (type === 'error') toast.style.background = 'var(--danger)';
+        if (type === 'info') toast.style.background = 'var(--primary)';
+        
+        toast.innerHTML = `<i class="fas fa-info-circle"></i> ${msg}`;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 500);
+        }, 3000);
+    }
+
+    loadExames();
+</script>
+{% endblock %}

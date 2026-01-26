@@ -1,0 +1,29 @@
+# Production dependencies
+# Install with: pip install -r requirements-prod.txt
+
+# Core dependencies (same as requirements.txt)
+asgiref==3.11.0
+Django==6.0.1
+djangorestframework==3.16.1
+pillow==12.1.0
+sqlparse==0.5.5
+tzdata==2025.3
+python-dotenv==1.0.1
+
+# Production WSGI server
+gunicorn==23.0.0
+
+# Static files serving
+whitenoise==6.7.0
+
+# PostgreSQL database adapter
+psycopg2-binary==2.9.10
+
+# Database URL parsing
+dj-database-url==2.3.0
+
+# Security headers
+django-csp==3.8
+
+# Optional: Monitoring and logging
+# sentry-sdk==2.7.1

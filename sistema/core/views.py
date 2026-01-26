@@ -1,4 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.http import JsonResponse, HttpResponseForbidden
 from rest_framework import viewsets
 from django.views import View
 from .models import *
@@ -9,10 +12,8 @@ from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
 import random
 from .choices import *
-from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework import permissions
-from django.shortcuts import redirect
 
 class HomeView(View):
     def get(self, request):
@@ -53,16 +54,53 @@ class MedicoExamesViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Filtra exames apenas do médico logado
+        # Filtra exames apenas do médico logado com verificação de segurança
         medico_id = self.kwargs.get('medico_id')
-        return Exame.objects.filter(medico_id=medico_id).order_by('-data_criacao')
+        
+        # VERIFICAÇÃO EXPLÍCITA NO BANCO PARA GARANTIR PERMISSÕES
+        from .models import Medico
+        try:
+            medico = Medico.objects.get(pk=medico_id)
+            # Verificar se o usuário logado tem permissão para acessar este médico
+            if hasattr(self.request.user, 'medico') and self.request.user.medico.id == medico.id:
+                return Exame.objects.filter(medico_id=medico_id).order_by('-data_criacao')
+            elif self.request.user.is_superuser:
+                return Exame.objects.filter(medico_id=medico_id).order_by('-data_criacao')
+        except Medico.DoesNotExist:
+            pass
+            
+        return Exame.objects.none()
 
     def perform_update(self, serializer):
         # Garante que campos automáticos não sejam alterados manualmente no update
         serializer.save(medico=self.request.user.medico)
 
+@method_decorator(login_required, name='dispatch')
 class CriarExameView(View):
     def get(self, request, medico_id):
+        # Verifica se o usuário está autenticado e é um médico
+        if not request.user.is_authenticated:
+            return HttpResponseForbidden("Acesso negado: usuário não autenticado.")
+        
+        # VERIFICAÇÃO EXPLÍCITA NO BANCO PARA PERFIL MÉDICO
+        from .models import Medico
+        try:
+            # Forçar atualização do usuário do banco
+            request.user.refresh_from_db()
+            
+            # Verificar se usuário tem perfil de médico (consulta ao banco)
+            if not Medico.objects.filter(usuario_ptr_id=request.user.id).exists():
+                return HttpResponseForbidden("Acesso negado: usuário não é um médico.")
+            
+            medico = Medico.objects.get(usuario_ptr_id=request.user.id)
+            
+            # Verifica se o médico logado corresponde ao médico da URL
+            if medico.id != int(medico_id):
+                return HttpResponseForbidden("Acesso negado: médico não autorizado.")
+                
+        except Exception:
+            return HttpResponseForbidden("Acesso negado: erro ao verificar perfil médico.")
+        
         # Busca todos os pacientes para preencher o select
         pacientes = Paciente.objects.all() 
         return render(request, 'core/criar_exame.html', {
@@ -71,6 +109,29 @@ class CriarExameView(View):
         })
 
     def post(self, request, medico_id):
+        # Verifica se o usuário está autenticado e é um médico
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Acesso negado: usuário não autenticado.'}, status=403)
+        
+        # VERIFICAÇÃO EXPLÍCITA NO BANCO PARA PERFIL MÉDICO
+        from .models import Medico
+        try:
+            # Forçar atualização do usuário do banco
+            request.user.refresh_from_db()
+            
+            # Verificar se usuário tem perfil de médico (consulta ao banco)
+            if not Medico.objects.filter(usuario_ptr_id=request.user.id).exists():
+                return JsonResponse({'error': 'Acesso negado: usuário não é um médico.'}, status=403)
+            
+            medico = Medico.objects.get(usuario_ptr_id=request.user.id)
+            
+            # Verifica se o médico logado corresponde ao médico da URL
+            if medico.id != int(medico_id):
+                return JsonResponse({'error': 'Acesso negado: médico não autorizado.'}, status=403)
+                
+        except Exception as e:
+            return JsonResponse({'error': f'Acesso negado: erro ao verificar perfil médico. {str(e)}'}, status=403)
+        
         medico = get_object_or_404(Medico, id=medico_id)
         
         # Captura dados do formulário
@@ -96,11 +157,20 @@ class CriarExameView(View):
             )
 
             # Salva as múltiplas imagens enviadas
+            files_keys = list(request.FILES.keys())
             imagens_enviadas = request.FILES.getlist('imagens')
+            imagens_recebidas = len(imagens_enviadas)
+            imagens_salvas = 0
             for img in imagens_enviadas:
                 Imagem.objects.create(exame=exame, path=img)
+                imagens_salvas += 1
 
-            return JsonResponse({'success': True}) # Retorna sucesso para o JavaScript
+            return JsonResponse({
+                'success': True,
+                'files_keys': files_keys,
+                'imagens_recebidas': imagens_recebidas,
+                'imagens_salvas': imagens_salvas
+            }) # Retorna sucesso para o JavaScript
         
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
@@ -109,41 +179,62 @@ class EditarExameView(View):
     def post(self, request, exame_id):
         exame = get_object_or_404(Exame, id=exame_id)
         
+        # 1. Verifica se o usuário tem perfil de médico
         if not hasattr(request.user, 'medico'):
-            return JsonResponse({'success': False, 'error': 'Acesso negado.'}, status=403)
+            return JsonResponse({'success': False, 'error': 'Usuário não é um médico cadastrado.'}, status=403)
         
-        # Guardamos os estados antigos para comparar mudanças
-        resultado_antigo = exame.resultado_medico
-        disponibilidade_antiga = exame.disponibilidade
+        # 2. Verifica se o médico logado é o responsável por este exame
+        if exame.medico != request.user.medico:
+            return JsonResponse({'success': False, 'error': 'Acesso negado: Você não é o médico deste exame.'}, status=403)
 
+        # 3. Captura os dados enviados pelo JavaScript (FormData)
         resultado_medico = request.POST.get('resultado_medico')
         disponibilidade = request.POST.get('disponibilidade') == 'true'
+        descricao = request.POST.get('descricao', '')
 
         try:
+            # Atualizar campos básicos do exame
             exame.resultado_medico = resultado_medico
             exame.disponibilidade = disponibilidade
+            exame.descricao = descricao
             exame.save()
-
-            # --- REGISTO DE LOGS DE EDIÇÃO ---
-            medico_logado_id = request.user.medico.id
-
-            # Regista se o resultado médico foi alterado
-            if resultado_antigo != resultado_medico:
-                LogExames.objects.create(
-                    exame=exame,
-                    nome_evento='Revisão por médico',
-                    medico_id=medico_logado_id
-                )
-
-            # Regista se o exame foi disponibilizado (de False para True)
-            if not disponibilidade_antiga and disponibilidade:
-                LogExames.objects.create(
-                    exame=exame,
-                    nome_evento='Disponibilização para o paciente',
-                    medico_id=medico_logado_id
-                )
-
-            return JsonResponse({'success': True})
+            
+            # 4. Processar remoção de imagens
+            imagens_remover_ids = request.POST.getlist('imagens_remover')
+            imagens_removidas = 0
+            for img_id in imagens_remover_ids:
+                try:
+                    imagem = Imagem.objects.get(id=img_id, exame=exame)
+                    # Remover arquivo do sistema de arquivos
+                    if imagem.path and hasattr(imagem.path, 'delete'):
+                        imagem.path.delete(save=False)
+                    imagem.delete()
+                    imagens_removidas += 1
+                except Imagem.DoesNotExist:
+                    continue
+                except Exception as e:
+                    print(f"Erro ao remover imagem {img_id}: {e}")
+            
+            # 5. Processar novas imagens
+            novas_imagens = request.FILES.getlist('novas_imagens')
+            imagens_adicionadas = 0
+            for img_file in novas_imagens:
+                try:
+                    Imagem.objects.create(exame=exame, path=img_file)
+                    imagens_adicionadas += 1
+                except Exception as e:
+                    print(f"Erro ao adicionar imagem: {e}")
+            
+            # Retornar sucesso com informações adicionais
+            response_data = {
+                'success': True,
+                'message': 'Exame atualizado com sucesso!',
+                'imagens_removidas': imagens_removidas,
+                'imagens_adicionadas': imagens_adicionadas
+            }
+            
+            return JsonResponse(response_data)
+            
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
     
@@ -198,19 +289,31 @@ class PacienteExameViewSet(viewsets.ModelViewSet):
         paciente_id_url = self.kwargs.get('paciente_id')
         user = self.request.user
         
-        # 2. Verifica se o utilizador tem um perfil de paciente
-        if not hasattr(user, 'paciente'):
-            return Exame.objects.none()
+        # VERIFICAÇÃO EXPLÍCITA NO BANCO PARA GARANTIR PERMISSÕES
+        from .models import Paciente
+        try:
+            paciente = Paciente.objects.get(pk=paciente_id_url)
+            # Relacionar patient com user - FORÇAR CONSULTA
+            user.refresh_from_db()
+            
+            # 2. Verificar no banco se usuário tem perfil de paciente
+            if Paciente.objects.filter(usuario_ptr_id=user.id).exists():
+                usuario_paciente = Paciente.objects.get(usuario_ptr_id=user.id)
+                
+                # 3. Segurança: Garante que o ID da URL corresponde ao do utilizador logado
+                if usuario_paciente.id != int(paciente_id_url):
+                    return Exame.objects.none()
 
-        # 3. Segurança: Garante que o ID da URL corresponde ao do utilizador logado
-        if user.paciente.id != int(paciente_id_url):
-            return Exame.objects.none()
-
-        # 4. Filtra apenas exames do próprio paciente e já libertados pelo médico
-        return Exame.objects.filter(
-            paciente=user.paciente, 
-            disponibilidade=True
-        ).order_by('-data_criacao')
+                # 4. Filtra apenas exames do próprio paciente e já libertados pelo médico
+                return Exame.objects.filter(
+                    paciente=usuario_paciente, 
+                    disponibilidade=True
+                ).order_by('-data_criacao')
+            
+        except Paciente.DoesNotExist:
+            pass
+            
+        return Exame.objects.none()
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -233,9 +336,28 @@ def cadastro_paciente(request):
     if request.method == 'POST':
         form = PacienteCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user) # Faz o login automático após cadastro
-            return redirect('paciente-exames-list', paciente_id=user.id) # Redireciona para a home ou dashboard
+            from django.db import transaction
+            try:
+                with transaction.atomic():
+                    # Garantir que o usuário seja salvo no banco antes do login
+                    user = form.save(commit=True)
+                    
+                    # VERIFICAÇÃO EXPLÍCITA - Confirmar que foi salvo no banco
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    user_db = User.objects.get(email=user.email)
+                    
+                    # Login após confirmação de salvamento
+                    login(request, user_db)
+                    
+                    # Obtém o paciente criado com verificação explícita
+                    paciente = Paciente.objects.get(usuario_ptr_id=user_db.id)
+                    return redirect(f'/pacientes/{paciente.id}/exames/')
+                    
+            except Exception as e:
+                # Adicionar erro no form em caso de falha
+                form.add_error(None, f"Erro ao salvar usuário: {str(e)}")
+                return render(request, 'core/cadastro_paciente.html', {'form': form})
     else:
         form = PacienteCreationForm()
     return render(request, 'core/cadastro_paciente.html', {'form': form})
@@ -244,9 +366,28 @@ def cadastro_medico(request):
     if request.method == 'POST':
         form = MedicoCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect('medico-exames-list', medico_id=user.id) 
+            from django.db import transaction
+            try:
+                with transaction.atomic():
+                    # Garantir que o usuário seja salvo no banco antes do login
+                    user = form.save(commit=True)
+                    
+                    # VERIFICAÇÃO EXPLÍCITA - Confirmar que foi salvo no banco
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    user_db = User.objects.get(email=user.email)
+                    
+                    # Login após confirmação de salvamento
+                    login(request, user_db)
+                    
+                    # Obtém o médico criado com verificação explícita
+                    medico = Medico.objects.get(usuario_ptr_id=user_db.id)
+                    return redirect(f'/medicos/{medico.id}/dashboard/')
+                    
+            except Exception as e:
+                # Adicionar erro no form em caso de falha
+                form.add_error(None, f"Erro ao salvar usuário: {str(e)}")
+                return render(request, 'core/cadastro_medico.html', {'form': form})
     else:
         form = MedicoCreationForm()
     return render(request, 'core/cadastro_medico.html', {'form': form})
@@ -261,8 +402,15 @@ class CustomLoginView(LoginView):
         # Pega o usuário que está tentando logar
         user = form.get_user()
 
+        # FORÇAR CONSULTA AO BANCO PARA GARANTIR CONSISTÊNCIA
+        from .models import Medico, Paciente
+        user.refresh_from_db()
+
         # Verifica se o usuário NÃO tem perfil de médico E NÃO tem perfil de paciente
-        if not hasattr(user, 'medico') and not hasattr(user, 'paciente'):
+        is_medico = Medico.objects.filter(usuario_ptr_id=user.id).exists()
+        is_paciente = Paciente.objects.filter(usuario_ptr_id=user.id).exists()
+
+        if not is_medico and not is_paciente and not user.is_superuser:
             # Se não tiver perfil, adiciona uma mensagem de erro e cancela o login
             form.add_error(None, "Acesso permitido apenas para Médicos e Pacientes. Administradores devem usar a rota /admin.")
             return self.form_invalid(form)
@@ -273,14 +421,23 @@ class CustomLoginView(LoginView):
     def get_success_url(self):
         user = self.request.user
         
-        # Redirecionamento para Médicos
-        if hasattr(user, 'medico'):
-            return reverse_lazy('medico-dashboard', kwargs={'medico_id': user.medico.id})
+        # FORÇAR CONSULTA AO BANCO PARA GARANTIR CONSISTÊNCIA CACHE VS BANCO
+        from django.db import transaction
+        with transaction.atomic():
+            user.refresh_from_db()
             
-        # Redirecionamento para Pacientes
-        if hasattr(user, 'paciente'):
-            return reverse_lazy('paciente-exames-list', kwargs={'paciente_id': user.paciente.id})
+        # VERIFICAÇÃO EXPLÍCITA NO BANCO PARA REDIRECIONAMENTO CORRETO
+        from .models import Medico, Paciente
+        try:
+            if Medico.objects.filter(usuario_ptr_id=user.id).exists():
+                medico = Medico.objects.get(usuario_ptr_id=user.id)
+                return reverse_lazy('medico-dashboard', kwargs={'medico_id': medico.id})
+            elif Paciente.objects.filter(usuario_ptr_id=user.id).exists():
+                paciente = Paciente.objects.get(usuario_ptr_id=user.id)
+                return reverse_lazy('paciente-exames-list', kwargs={'paciente_id': paciente.id})
+        except Exception:
+            pass
             
-        # Caso de segurança (teoricamente inalcançável devido ao filtro acima)
+        # Caso de segurança (inalcançável devido ao filtro acima)
         return '/'
     

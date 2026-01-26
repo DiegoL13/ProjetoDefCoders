@@ -4,7 +4,7 @@ from .models import Medico, Exame, Imagem, Usuario, Paciente
 class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
-        fields = ['nome', 'cpf', 'data_nascimento', 'sexo', 'contato', 'email']
+        fields = ['id', 'nome', 'cpf', 'data_nascimento', 'sexo', 'contato', 'email']
 
 class MedicoSerializer(UsuarioSerializer):
     class Meta(UsuarioSerializer.Meta):

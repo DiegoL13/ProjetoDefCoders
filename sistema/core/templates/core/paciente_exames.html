@@ -1,256 +1,363 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Portal do Paciente - Dashboard de Exames</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <style>
-    :root {
-      --primary-color: #2c3e50;
-      --accent-color: #3498db;
-      --bg-body: #f4f7f6;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --card-bg: #ffffff;
-    }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--bg-body); color: var(--text-main); line-height: 1.6; display: flex; }
-    
-    .sidebar { 
-        width: 250px; 
-        height: 100vh; 
-        background-color: var(--primary-color); 
-        color: white; 
-        padding: 20px; 
-        position: fixed; 
-        display: flex; 
-        flex-direction: column; 
-        box-sizing: border-box;
-        z-index: 100;
-    }
-    .sidebar-logo { margin-bottom: 30px; text-align: center; padding: 10px 0; }
-    .logo-text { font-size: 1.5rem; font-weight: bold; letter-spacing: 1px; color: white; display: flex; align-items: center; justify-content: center; gap: 10px; }
-    .logo-text i { color: var(--accent-color); font-size: 1.8rem; }
+{% extends 'core/base.html' %}
+{% load static %}
 
-    .main-content { 
-        margin-left: 250px; 
-        padding: 40px 5%; 
-        width: calc(100% - 250px);
-        box-sizing: border-box;
+{% block title %}Meus Exames{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        padding: 3rem 5%;
+        background-color: var(--bg-light);
+    }
+
+    .dashboard-header {
+        margin-bottom: 2.5rem;
+    }
+
+    .dashboard-header h1 {
+        font-size: 2rem;
+        color: var(--secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    /* Stats Cards */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .stat-card {
+        background: var(--white);
+        padding: 1.5rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border-left: 5px solid var(--primary);
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .stat-card span {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-light);
+        text-transform: uppercase;
+    }
+
+    .stat-card strong {
+        font-size: 1.75rem;
+        color: var(--secondary);
+    }
+
+    /* Exame Cards */
+    .exames-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .exame-card {
+        background: var(--white);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border: 1px solid var(--border);
+        transition: all 0.3s;
+    }
+
+    .exame-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+    }
+
+    .exame-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .protocolo-info h3 {
+        color: var(--primary);
+        font-size: 1.25rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .protocolo-info p {
+        color: var(--text-light);
+        font-size: 0.9rem;
+    }
+
+    .exame-body {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+    }
+
+    .result-section h4 {
+        font-size: 1.1rem;
+        color: var(--secondary);
+        margin-bottom: 1rem;
+    }
+
+    .result-badge {
+        display: inline-block;
+        padding: 0.5rem 1.5rem;
+        background: #f0f9ff;
+        color: var(--primary);
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        border: 1px solid #e0f2fe;
+    }
+
+    .description {
+        margin-top: 1rem;
+        color: var(--secondary);
+        line-height: 1.6;
+    }
+
+    .medico-info {
+        background: #f8fafc;
+        padding: 1.5rem;
+        border-radius: 15px;
+        border: 1px solid var(--border);
+    }
+
+    .medico-info h5 {
+        font-size: 0.9rem;
+        color: var(--text-light);
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+    }
+
+    .medico-info p {
+        font-weight: 600;
+        color: var(--secondary);
+        margin-bottom: 1rem;
+    }
+
+    .btn-download {
+        width: 100%;
+        padding: 0.8rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+
+    .btn-download:hover {
+        background: var(--primary-dark);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 5rem;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .empty-state i {
+        color: #cbd5e1;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Paginator */
+    .pager {
         display: flex;
         justify-content: center;
-    }
-    
-    .page-container {
-        width: 100%;
-        max-width: 1000px; 
+        align-items: center;
+        gap: 1rem;
+        margin-top: 3rem;
     }
 
-    .header-dashboard { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-    .btn-logout { background: #e74c3c; color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer; text-decoration: none; font-size: 0.9em; }
-
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .stat-card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid var(--accent-color); }
-    .stat-card h3 { margin: 0; font-size: 0.85em; color: var(--text-muted); text-transform: uppercase; }
-    .stat-card p { margin: 5px 0 0; font-size: 1.6em; font-weight: bold; }
-
-    .exame-card { background: var(--card-bg); border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; overflow: hidden; }
-    .exame-header { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 15px; }
-    .protocolo { font-weight: bold; color: var(--accent-color); font-size: 0.9em; }
-    
-    .exame-body { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
-    .resultado-principal { font-size: 1.1em; font-weight: 700; color: #0f172a; margin-bottom: 10px; }
-
-    /* Ajuste da Descrição para evitar sobreposição */
-    .descricao-container { 
-        margin-top: 10px; 
-        display: flex; 
-        flex-direction: column; 
-    }
-    .descricao-texto { 
-        color: #475569; 
-        font-size: 0.95em; 
-        white-space: pre-wrap; 
-        overflow-wrap: anywhere; 
-        word-break: break-word;
-        max-height: 4.5em; 
-        overflow: hidden;
-        transition: max-height 0.3s ease;
-    }
-    .descricao-texto.expandido { 
-        max-height: 2000px; 
-    }
-    .btn-toggle-desc { 
-        background: none; 
-        border: none; 
-        color: var(--accent-color); 
-        cursor: pointer; 
-        padding: 5px 0; 
-        font-size: 0.85em; 
-        font-weight: bold; 
-        align-self: flex-start; /* Garante que o botão fique abaixo e à esquerda */
+    .btn-pager {
+        padding: 0.6rem 1.2rem;
+        border-radius: 50px;
+        border: 1px solid var(--border);
+        background: white;
+        color: var(--secondary);
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
     }
 
-    .galeria-exame { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
-    .img-exame-thumb { width: 70px; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; cursor: pointer; }
+    .btn-pager:hover:not(:disabled) {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
 
-    .medico-info { background: #f8fafc; padding: 15px; border-radius: 8px; font-size: 0.85em; align-self: start; border: 1px solid #edf2f7; }
-    .empty-state { text-align: center; padding: 60px; background: white; border-radius: 12px; border: 2px dashed #cbd5e1; }
-    
-    .btn-nav { background: var(--accent-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-    
+    .btn-pager:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
     @media (max-width: 768px) {
-      .sidebar { display: none; }
-      .main-content { margin-left: 0; padding: 20px; width: 100%; }
-      .exame-body { grid-template-columns: 1fr; }
+        .exame-body {
+            grid-template-columns: 1fr;
+        }
     }
-  </style>
-</head>
-<body>
+</style>
+{% endblock %}
 
-  <div class="sidebar">
-    <div class="sidebar-logo">
-        <div class="logo-text"><i class="fas fa-heartbeat"></i> Portal Saúde</div>
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>Olá, {{ user.nome }}</h1>
+        <p style="color: var(--text-light);">Aqui está seu histórico completo de exames digitais.</p>
     </div>
-    <p><i class="fas fa-user-circle"></i> Portal do Paciente</p>
-    <hr style="width: 100%; border: 0.5px solid #3e4f5f; margin: 10px 0;">
-    <nav style="flex-grow: 1;">
-      <div style="padding: 12px; background: var(--accent-color); border-radius: 8px; font-size: 0.9em; font-weight: 600;">
-        <i class="fas fa-file-medical"></i> Meus Exames
-      </div>
-    </nav>
-  </div>
 
-  <div class="main-content">
-    <div class="page-container">
-        <div class="header-dashboard">
-          <h1>Olá! Veja seu histórico de exames</h1>
-          <form action="{% url 'logout' %}?next=/" method="post">
-              {% csrf_token %}
-              <button type="submit" class="btn-logout">Sair</button>
-          </form>
+    <div class="stats-row">
+        <div class="stat-card">
+            <span>Total de Exames</span>
+            <strong id="totalExames">0</strong>
         </div>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <h3>Total de Exames</h3>
-            <p id="totalExames">0</p>
-          </div>
-          <div class="stat-card" style="border-left-color: #27ae60;">
-            <h3>Última Atualização</h3>
-            <p id="ultimaData">--/--/--</p>
-          </div>
-        </div>
-
-        <div style="margin-bottom: 20px; display: flex; justify-content: flex-end;">
-            <select id="pageSizeSelect" style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
-                <option value="5">Mostrar 5 por vez</option>
-                <option value="10" selected>Mostrar 10 por vez</option>
-            </select>
-        </div>
-
-        <div id="loading" class="empty-state"><i class="fas fa-spinner fa-spin"></i> Carregando exames...</div>
-        <div id="exames-list"></div>
-
-        <div style="display:none; justify-content: center; gap: 20px; margin: 40px 0;" id="pager">
-          <button class="btn-nav" id="prevBtn" style="background: #64748b;">Anterior</button>
-          <span id="pageIndicator" style="align-self: center; font-weight: 600;"></span>
-          <button class="btn-nav" id="nextBtn">Próximo</button>
+        <div class="stat-card" style="border-left-color: var(--success);">
+            <span>Última Atualização</span>
+            <strong id="ultimaData">--/--/--</strong>
         </div>
     </div>
-  </div>
 
-  <script>
+    <div id="loading" style="text-align: center; padding: 4rem;">
+        <i class="fas fa-spinner fa-spin fa-3x" style="color: var(--primary);"></i>
+        <p style="margin-top: 1rem; color: var(--text-light);">Carregando seus resultados...</p>
+    </div>
+
+    <div id="exames-list" class="exames-list"></div>
+
+    <div id="pager" class="pager" style="display: none;">
+        <button class="btn-pager" id="prevBtn">Anterior</button>
+        <span id="pageIndicator" style="font-weight: 600; color: var(--text-light);"></span>
+        <button class="btn-pager" id="nextBtn">Próximo</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
     (function(){
-    const pacienteId = "{{ paciente_id|default:'' }}";
-    const apiUrl = `/core/pacientes/${pacienteId}/exames/`;
-    
-    let allExames = [];
-    let currentPage = 1;
-    let pageSize = 10;
-
-    window.toggleDescricao = function(btn) {
-        const texto = btn.previousElementSibling;
-        const isExpandido = texto.classList.toggle('expandido');
-        btn.textContent = isExpandido ? 'Ver menos' : 'Ver mais';
-    };
-
-    function renderPage(){
-        const container = document.getElementById('exames-list');
-        const loading = document.getElementById('loading');
-        if(loading) loading.style.display = 'none';
-        container.innerHTML = '';
+        const pacienteId = "{{ paciente_id }}";
+        const apiUrl = `/pacientes/${pacienteId}/exames/`;
         
-        if(!allExames || allExames.length === 0){
-            container.innerHTML = `<div class="empty-state"><p>Nenhum exame encontrado.</p></div>`;
-            return;
+        let allExames = [];
+        let currentPage = 1;
+        let pageSize = 10;
+
+        async function fetchExames() {
+            try {
+                const response = await fetch(apiUrl, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+                allExames = Array.isArray(data) ? data : (data.results || []);
+                renderPage();
+            } catch (e) {
+                console.error(e);
+                renderPage();
+            }
         }
 
-        const start = (currentPage - 1) * pageSize;
-        const pageItems = allExames.slice(start, start + pageSize);
+        function renderPage() {
+            const container = document.getElementById('exames-list');
+            const loading = document.getElementById('loading');
+            if (loading) loading.style.display = 'none';
+            container.innerHTML = '';
 
-        pageItems.forEach(exame => {
-            const div = document.createElement('div');
-            div.className = 'exame-card';
-            
-            const imagensHtml = exame.imagens && exame.imagens.length > 0 
-                ? `<div class="galeria-exame">
-                    ${exame.imagens.map(img => `<img src="${img.path}" class="img-exame-thumb" onclick="window.open('${img.path}', '_blank')">`).join('')}
-                   </div>` : '';
+            if (allExames.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-file-medical-alt fa-4x"></i>
+                        <h3 style="color: var(--secondary); margin-bottom: 0.5rem;">Nenhum exame liberado</h3>
+                        <p style="color: var(--text-light);">Quando seu médico liberar os resultados, eles aparecerão aqui.</p>
+                    </div>`;
+                return;
+            }
 
-            div.innerHTML = `
-                <div class="exame-header">
-                    <span class="protocolo"><i class="fas fa-hashtag"></i> Protocolo: ${exame.id}</span>
-                    <span style="color: #64748b; font-size: 0.85em;"><i class="far fa-calendar-alt"></i> ${new Date(exame.data_criacao).toLocaleDateString('pt-BR')}</span>
-                </div>
-                <div class="exame-body">
-                    <div>
-                        <div class="resultado-principal">Resultado: ${exame.resultado_medico || 'Em análise'}</div>
-                        <div class="descricao-container">
-                            <div class="descricao-texto">${exame.descricao || 'Sem observações.'}</div>
-                            ${(exame.descricao && exame.descricao.length > 150) ? '<button class="btn-toggle-desc" onclick="toggleDescricao(this)">Ver mais</button>' : ''}
+            const start = (currentPage - 1) * pageSize;
+            const pageItems = allExames.slice(start, start + pageSize);
+
+            pageItems.forEach(exame => {
+                const card = document.createElement('div');
+                card.className = 'exame-card';
+                card.innerHTML = `
+                    <div class="exame-header">
+                        <div class="protocolo-info">
+                            <h3>Exame Digital</h3>
+                            <p><i class="fas fa-hashtag"></i> Protocolo: ${exame.id}</p>
                         </div>
-                        ${imagensHtml}
+                        <div style="text-align: right;">
+                            <span style="color: var(--text-light); font-size: 0.9rem;">
+                                <i class="far fa-calendar-alt"></i> ${new Date(exame.data_criacao).toLocaleDateString()}
+                            </span>
+                        </div>
                     </div>
-                    <div class="medico-info">
-                        <strong>Médico Responsável:</strong><br>
-                        ${exame.medico_nome || 'Não informado'}
+                    <div class="exame-body">
+                        <div class="result-info">
+                            <h4>Resultado do Laudo</h4>
+                            <div class="result-badge">${exame.resultado_medico || 'Análise Pendente'}</div>
+                            <div class="description">
+                                ${exame.descricao || 'Sem descrição detalhada disponível.'}
+                            </div>
+                        </div>
+                        <div class="medico-section">
+                            <div class="medico-info">
+                                <h5>Médico Responsável</h5>
+                                <p><i class="fas fa-user-md"></i> ${exame.medico_nome || 'Não identificado'}</p>
+                                <button class="btn-download" onclick="window.print()">
+                                    <i class="fas fa-file-pdf"></i> Visualizar PDF
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            `;
-            container.appendChild(div);
+                `;
+                container.appendChild(card);
+            });
+
+            updateStats();
+            updatePager();
+        }
+
+        function updateStats() {
+            document.getElementById('totalExames').textContent = allExames.length;
+            if (allExames.length > 0) {
+                const dates = allExames.map(e => new Date(e.data_criacao).getTime());
+                document.getElementById('ultimaData').textContent = new Date(Math.max(...dates)).toLocaleDateString();
+            }
+        }
+
+        function updatePager() {
+            const totalPages = Math.ceil(allExames.length / pageSize);
+            const pager = document.getElementById('pager');
+            pager.style.display = totalPages > 1 ? 'flex' : 'none';
+            if (totalPages > 1) {
+                document.getElementById('pageIndicator').textContent = `${currentPage} / ${totalPages}`;
+                document.getElementById('prevBtn').disabled = currentPage === 1;
+                document.getElementById('nextBtn').disabled = currentPage === totalPages;
+            }
+        }
+
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentPage > 1) { currentPage--; renderPage(); }
         });
 
-        document.getElementById('totalExames').textContent = allExames.length;
-        if(allExames.length > 0) {
-            const datas = allExames.map(e => new Date(e.data_criacao).getTime());
-            document.getElementById('ultimaData').textContent = new Date(Math.max(...datas)).toLocaleDateString('pt-BR');
-        }
-        
-        const totalPages = Math.ceil(allExames.length / pageSize);
-        document.getElementById('pager').style.display = totalPages > 1 ? 'flex' : 'none';
-        if(totalPages > 1) document.getElementById('pageIndicator').textContent = `Página ${currentPage} de ${totalPages}`;
-    }
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            const totalPages = Math.ceil(allExames.length / pageSize);
+            if (currentPage < totalPages) { currentPage++; renderPage(); }
+        });
 
-    document.getElementById('pageSizeSelect').addEventListener('change', (e) => {
-        pageSize = parseInt(e.target.value);
-        currentPage = 1;
-        renderPage();
-    });
-
-    document.getElementById('prevBtn').addEventListener('click', () => { if(currentPage > 1) { currentPage--; renderPage(); } });
-    document.getElementById('nextBtn').addEventListener('click', () => { if(currentPage < Math.ceil(allExames.length / pageSize)) { currentPage++; renderPage(); } });
-
-    if (pacienteId) {
-        fetch(apiUrl, { headers: { 'Accept': 'application/json' } })
-        .then(res => res.ok ? res.json() : [])
-        .then(data => {
-            allExames = Array.isArray(data) ? data : (data.results || []);
-            renderPage();
-        })
-        .catch(() => renderPage());
-    } else { renderPage(); }
-})();
+        fetchExames();
+    })();
 </script>
-</body>
-</html>
+{% endblock %}

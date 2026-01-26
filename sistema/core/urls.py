@@ -24,10 +24,11 @@ urlpatterns = [
     path('medicos/<int:medico_id>/dashboard/', MedicoDashboardView.as_view(), name='medico-dashboard'),
     path('medicos/<int:medico_id>/novo-exame/', CriarExameView.as_view(), name='criar-exame'),
 
-    path('exame/<int:exame_id>/editar/', EditarExameView.as_view(), name='editar-exame'),
+    path('exame/<int:exame_id>/editar/', views.EditarExameView.as_view(), name='editar-exame'),
     
     path('cadastro/paciente/', views.cadastro_paciente, name='cadastro_paciente'),
     path('cadastro/medico/', views.cadastro_medico, name='cadastro_medico'),
+    path('pacientes/<int:paciente_id>/exames/', PacienteExameViewSet.as_view({'get': 'list'}), name='paciente-exames'),
 
     path('', include(router.urls)),
     

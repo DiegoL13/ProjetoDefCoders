@@ -1,0 +1,224 @@
+{% load static %}
+{% load core_tags %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Portal Saúde{% endblock %} - Inteligência em Diagnósticos</title>
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #00BFFF;
+            --primary-dark: #0099CC;
+            --secondary: #2c3e50;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --bg-light: #f8fafc;
+            --bg-dark: #34495e;
+            --white: #ffffff;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --shadow-sm: rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--secondary);
+            background-color: var(--bg-light);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: var(--white);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .nav-link {
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        .btn-nav {
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-nav-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 191, 255, 0.2);
+        }
+
+        .btn-nav-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-nav-outline {
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-nav-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+        }
+
+        /* Flash Messages */
+        .messages-container {
+            max-width: 800px;
+            margin: 1rem auto;
+            padding: 0 1rem;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .message-success { background-color: var(--success); }
+        .message-error { background-color: var(--danger); }
+        .message-warning { background-color: var(--warning); }
+        .message-info { background-color: var(--primary); }
+
+        /* Footer */
+        footer {
+            background: var(--secondary);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: auto;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <a href="{% url 'home' %}" class="logo">
+            <i class="fas fa-hand-holding-medical"></i> Portal Saúde
+        </a>
+        
+        <div class="nav-links">
+            {% if user.is_authenticated %}
+                <span style="color: var(--text-light); font-size: 0.9rem;">Olá, <strong>{{ user.nome }}</strong></span>
+                {% if user.is_medico and user.medico %}
+                    <a href="/medicos/{{ user.medico.id }}/dashboard/" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                {% elif user.is_paciente and user.paciente %}
+                    <a href="/pacientes/{{ user.paciente.id }}/exames/" class="nav-link">
+                        <i class="fas fa-file-medical"></i> Meus Exames
+                    </a>
+                {% endif %}
+                <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-link" style="background: none; border: none; cursor: pointer; font-family: inherit; font-size: inherit; color: var(--danger);">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}" class="nav-link">Entrar</a>
+                <a href="{% url 'cadastro_paciente' %}" class="btn-nav btn-nav-primary">Sou Paciente</a>
+                <a href="{% url 'cadastro_medico' %}" class="btn-nav btn-nav-outline">Sou Médico</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+                <div class="message message-{{ message.tags }}">
+                    <i class="fas fa-info-circle"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Portal Saúde - Inteligência em Diagnósticos Médicos</p>
+        <p style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.7;">Desenvolvido por Def Coders</p>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
