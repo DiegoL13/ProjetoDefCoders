@@ -17,7 +17,10 @@ class PacienteCreationForm(forms.ModelForm):
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            # ... adicione classes aos outros campos conforme necessário
+            'data_nascimento': forms.DateInput(attrs={'type': 'date'}),
+        }
+        labels = {
+            'data_nascimento': 'Data de Nascimento',
         }
 
     def save(self, commit=True):
@@ -32,10 +35,14 @@ class MedicoCreationForm(forms.ModelForm):
 
     class Meta:
         model = Medico
-        fields = ['nome','cpf', 'email', 'password', 'crm', 'especialidade', 'contato']
+        fields = ['nome','cpf', 'data_nascimento', 'email', 'password', 'crm', 'especialidade', 'contato']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'data_nascimento': forms.DateInput(attrs={'type': 'date'}),
+        }
+        labels = {
+            'data_nascimento': 'Data de Nascimento',
         }
 
     def save(self, commit=True):

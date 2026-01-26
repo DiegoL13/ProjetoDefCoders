@@ -234,8 +234,8 @@ def cadastro_paciente(request):
         form = PacienteCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user) # Faz o login automático após cadastro
-            return redirect('paciente-exames-list', paciente_id=user.id) # Redireciona para a home ou dashboard
+            # Removido: login(request, user) - Não faz mais login automático
+            return redirect('login') # Redireciona para a tela de login
     else:
         form = PacienteCreationForm()
     return render(request, 'core/cadastro_paciente.html', {'form': form})
@@ -245,13 +245,12 @@ def cadastro_medico(request):
         form = MedicoCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)
-            return redirect('medico-exames-list', medico_id=user.id) 
+            # Removido: login(request, user) - Não faz mais login automático
+            return redirect('login') # Redireciona para a tela de login
     else:
         form = MedicoCreationForm()
     return render(request, 'core/cadastro_medico.html', {'form': form})
 
-# sistema/core/views.py
 
 class CustomLoginView(LoginView):
     authentication_form = LoginForm 
